@@ -13,14 +13,30 @@
   --card-hover: #222235;
   --border: #28283E;
   --text: #E4E4F0;
-  --text-muted: #7070A0;
+  --text-muted: #9090B8;
   --accent: #E8B86D;
   --accent-glow: rgba(232,184,109,0.18);
-  --da-vedere: #6C63FF;
+  --da-vedere: #8B84FF;
   --in-corso: #FF9F43;
-  --sospeso: #636380;
+  --sospeso: #9090B0;
   --finito: #00C897;
   --non-mi-piace: #E05555;
+}
+body.light {
+  --bg: #F0F2F8;
+  --surface: #FFFFFF;
+  --card: #F7F8FC;
+  --card-hover: #ECEEF8;
+  --border: #D4D8EE;
+  --text: #1A1A35;
+  --text-muted: #6060A0;
+  --accent: #C8900A;
+  --accent-glow: rgba(200,144,10,0.15);
+  --da-vedere: #5550E8;
+  --in-corso: #D07800;
+  --sospeso: #7070A0;
+  --finito: #007A5E;
+  --non-mi-piace: #C03030;
 }
 * { margin:0; padding:0; box-sizing:border-box; }
 html,body { height:100%; overflow:hidden; }
@@ -185,7 +201,7 @@ header {
   background:var(--surface); color:var(--text-muted); border:1px solid var(--border);
 }
 .card-prog { font-size:10px; color:var(--text-muted); margin-bottom:3px; }
-.card-notes { font-size:9px; color:#5555A0; font-style:italic; line-height:1.3; }
+.card-notes { font-size:9px; color:var(--text-muted); font-style:italic; line-height:1.3; }
 .card-actions { display:flex; justify-content:flex-end; gap:3px; margin-top:7px; }
 .ibt {
   width:22px; height:22px; border-radius:5px;
@@ -346,6 +362,7 @@ textarea.fc { resize:vertical; min-height:52px; }
     <input class="search-input" id="searchInput" placeholder="Cerca... (premi / per focalizzare)">
   </div>
   <div class="header-stats" id="statsBar"></div>
+  <button class="hbtn hbtn-ghost" id="themeBtn" onclick="toggleTheme()">☀️ Chiaro</button>
   <button class="hbtn hbtn-ghost" onclick="openSync()">☁️ Sync</button>
   <button class="hbtn hbtn-ghost" onclick="toggleLinks()">🔗 Siti</button>
   <button class="hbtn hbtn-primary" onclick="openAdd()">＋ Aggiungi</button>
@@ -1198,6 +1215,22 @@ function deleteItem(){
 }
 
 // ═══════════════════════════════════════════════════════════
+//  THEME
+// ═══════════════════════════════════════════════════════════
+function toggleTheme(){
+  const isLight = document.body.classList.toggle('light');
+  localStorage.setItem('serietv_theme', isLight ? 'light' : 'dark');
+  document.getElementById('themeBtn').textContent = isLight ? '🌙 Scuro' : '☀️ Chiaro';
+}
+function initTheme(){
+  const saved = localStorage.getItem('serietv_theme');
+  if(saved === 'light'){
+    document.body.classList.add('light');
+    document.getElementById('themeBtn').textContent = '🌙 Scuro';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
 //  SYNC MODAL
 // ═══════════════════════════════════════════════════════════
 const JBKEY_K = 'serietv_jbkey';
@@ -1349,6 +1382,7 @@ document.getElementById('searchInput').addEventListener('input',e=>{
 //  INIT
 // ═══════════════════════════════════════════════════════════
 load();
+initTheme();
 renderAll();
 </script>
 </body>
