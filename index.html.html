@@ -1,0 +1,1355 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎬 Serie & Film Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Nunito:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0D0D14;
+  --surface: #13131F;
+  --card: #1A1A2A;
+  --card-hover: #222235;
+  --border: #28283E;
+  --text: #E4E4F0;
+  --text-muted: #7070A0;
+  --accent: #E8B86D;
+  --accent-glow: rgba(232,184,109,0.18);
+  --da-vedere: #6C63FF;
+  --in-corso: #FF9F43;
+  --sospeso: #636380;
+  --finito: #00C897;
+  --non-mi-piace: #E05555;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html,body { height:100%; overflow:hidden; }
+body { font-family:'Nunito',sans-serif; background:var(--bg); color:var(--text); display:flex; flex-direction:column; }
+
+/* ── HEADER ── */
+header {
+  background:var(--surface);
+  border-bottom:1px solid var(--border);
+  padding:0 18px;
+  height:54px;
+  display:flex;
+  align-items:center;
+  gap:14px;
+  flex-shrink:0;
+  box-shadow:0 4px 24px rgba(0,0,0,.45);
+  z-index:100;
+}
+.logo {
+  font-family:'Bebas Neue',sans-serif;
+  font-size:26px;
+  letter-spacing:2px;
+  color:var(--accent);
+  white-space:nowrap;
+  flex-shrink:0;
+}
+.logo sub { font-size:11px; color:var(--text-muted); letter-spacing:1px; vertical-align:middle; margin-left:6px; font-family:'Nunito',sans-serif; }
+.search-wrap { flex:1; max-width:380px; position:relative; }
+.search-wrap svg { position:absolute; left:10px; top:50%; transform:translateY(-50%); color:var(--text-muted); pointer-events:none; }
+.search-input {
+  width:100%; background:var(--card); border:1px solid var(--border);
+  border-radius:8px; padding:7px 12px 7px 32px;
+  color:var(--text); font-family:'Nunito',sans-serif; font-size:13px; outline:none;
+  transition:border-color .2s;
+}
+.search-input:focus { border-color:var(--accent); }
+.search-input::placeholder { color:var(--text-muted); }
+.header-stats { display:flex; gap:14px; font-size:12px; color:var(--text-muted); margin-left:4px; }
+.header-stats strong { color:var(--text); }
+.hbtn {
+  padding:6px 14px; border-radius:7px; border:none; cursor:pointer;
+  font-family:'Nunito',sans-serif; font-size:13px; font-weight:700; transition:all .18s;
+  flex-shrink:0;
+}
+.hbtn-ghost { background:var(--card); color:var(--text-muted); border:1px solid var(--border); }
+.hbtn-ghost:hover { background:var(--card-hover); color:var(--text); }
+.hbtn-primary { background:var(--accent); color:#0D0D14; }
+.hbtn-primary:hover { background:#f0c984; }
+
+/* ── FILTERS ── */
+.filters {
+  background:var(--surface);
+  border-bottom:1px solid var(--border);
+  padding:8px 18px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-shrink:0;
+  overflow-x:auto;
+}
+.filters::-webkit-scrollbar { height:0; }
+.flabel { font-size:10px; text-transform:uppercase; letter-spacing:1.2px; color:var(--text-muted); white-space:nowrap; flex-shrink:0; }
+.chips { display:flex; gap:5px; }
+.chip {
+  padding:3px 11px; border-radius:20px; border:1px solid var(--border);
+  background:transparent; color:var(--text-muted);
+  font-family:'Nunito',sans-serif; font-size:11px; font-weight:700; cursor:pointer;
+  transition:all .15s; white-space:nowrap;
+}
+.chip:hover { border-color:var(--accent); color:var(--accent); }
+.chip.on { background:var(--accent); border-color:var(--accent); color:#0D0D14; }
+.fdiv { width:1px; background:var(--border); height:22px; flex-shrink:0; }
+.type-tog {
+  display:flex; background:var(--card); border-radius:7px; padding:2px;
+  border:1px solid var(--border); flex-shrink:0;
+}
+.ttbtn {
+  padding:3px 11px; border-radius:5px; border:none; background:transparent;
+  color:var(--text-muted); font-family:'Nunito',sans-serif; font-size:11px;
+  font-weight:700; cursor:pointer; transition:all .15s;
+}
+.ttbtn.on { background:var(--accent); color:#0D0D14; }
+
+/* ── BOARD ── */
+.board-wrap {
+  flex:1;
+  overflow-x:auto;
+  overflow-y:hidden;
+  padding:16px 18px;
+}
+.board-wrap::-webkit-scrollbar { height:6px; }
+.board-wrap::-webkit-scrollbar-track { background:var(--bg); }
+.board-wrap::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+.board {
+  display:grid;
+  grid-template-columns:repeat(5, 270px);
+  gap:14px;
+  height:100%;
+  min-width:max-content;
+}
+
+/* ── COLUMN ── */
+.col {
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:12px;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
+.col-hd {
+  padding:12px 14px 10px;
+  display:flex; align-items:center; justify-content:space-between;
+  border-bottom:1px solid var(--border);
+  flex-shrink:0;
+}
+.col-title {
+  font-family:'Bebas Neue',sans-serif;
+  font-size:16px; letter-spacing:1.5px;
+  display:flex; align-items:center; gap:8px;
+}
+.col-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+.cnt {
+  background:var(--card); border:1px solid var(--border);
+  border-radius:12px; padding:1px 8px;
+  font-size:11px; color:var(--text-muted); font-family:'Nunito',sans-serif;
+}
+.cards-scroll {
+  overflow-y:auto; padding:10px 8px;
+  display:flex; flex-direction:column; gap:7px;
+  flex:1;
+}
+.cards-scroll::-webkit-scrollbar { width:3px; }
+.cards-scroll::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+
+/* ── CARD ── */
+.card {
+  background:var(--card);
+  border:1px solid var(--border);
+  border-left:3px solid transparent;
+  border-radius:9px;
+  padding:10px 11px 8px;
+  cursor:pointer;
+  transition:all .15s;
+  position:relative;
+}
+.card:hover {
+  background:var(--card-hover);
+  border-color:rgba(232,184,109,.28);
+  border-left-color:inherit;
+  transform:translateY(-1px);
+  box-shadow:0 4px 16px rgba(0,0,0,.35);
+}
+.card-title { font-size:12px; font-weight:800; line-height:1.3; margin-bottom:6px; padding-right:2px; }
+.card-meta { display:flex; align-items:center; gap:4px; flex-wrap:wrap; margin-bottom:5px; }
+.pbadge {
+  font-size:9px; font-weight:800; padding:2px 7px;
+  border-radius:10px; color:#fff; text-transform:uppercase; letter-spacing:.4px;
+}
+.tbadge {
+  font-size:9px; padding:2px 7px; border-radius:10px;
+  background:var(--surface); color:var(--text-muted); border:1px solid var(--border);
+}
+.card-prog { font-size:10px; color:var(--text-muted); margin-bottom:3px; }
+.card-notes { font-size:9px; color:#5555A0; font-style:italic; line-height:1.3; }
+.card-actions { display:flex; justify-content:flex-end; gap:3px; margin-top:7px; }
+.ibt {
+  width:22px; height:22px; border-radius:5px;
+  border:1px solid var(--border); background:var(--surface);
+  color:var(--text-muted); cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  font-size:10px; transition:all .15s; flex-shrink:0;
+}
+.ibt:hover { border-color:var(--accent); color:var(--accent); }
+.ibt.del:hover { border-color:var(--non-mi-piace); color:var(--non-mi-piace); background:rgba(224,85,85,.12); }
+
+/* Platform colors */
+.pn { background:#E50914; }
+.pp { background:#00A8E0; }
+.pd { background:#113CCF; }
+.pv { background:#7C3AED; }
+.pr { background:#0055A5; }
+.pm { background:#E05500; }
+.pda { background:#0D84FC; }
+.ps { background:#059669; }
+.pg { background:#525270; }
+.pa { background:#8B5CF6; }
+
+/* Status left border */
+.c-dv .card { border-left-color:var(--da-vedere); }
+.c-ic .card { border-left-color:var(--in-corso); }
+.c-so .card { border-left-color:var(--sospeso); }
+.c-fi .card { border-left-color:var(--finito); }
+.c-nm .card { border-left-color:var(--non-mi-piace); }
+.c-dv .col-title { color:var(--da-vedere); }
+.c-ic .col-title { color:var(--in-corso); }
+.c-so .col-title { color:var(--sospeso); }
+.c-fi .col-title { color:var(--finito); }
+.c-nm .col-title { color:var(--non-mi-piace); }
+
+/* ── MODAL ── */
+.overlay {
+  position:fixed; inset:0;
+  background:rgba(0,0,0,.72);
+  backdrop-filter:blur(5px);
+  display:flex; align-items:center; justify-content:center;
+  z-index:500; padding:20px;
+  opacity:0; pointer-events:none; transition:opacity .2s;
+}
+.overlay.open { opacity:1; pointer-events:all; }
+.modal {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:14px; padding:22px; width:100%; max-width:490px;
+  transform:translateY(18px); transition:transform .22s;
+  box-shadow:0 24px 64px rgba(0,0,0,.6);
+}
+.overlay.open .modal { transform:translateY(0); }
+.modal-title {
+  font-family:'Bebas Neue',sans-serif; font-size:20px;
+  letter-spacing:1.5px; color:var(--accent); margin-bottom:18px;
+}
+.fg { margin-bottom:12px; }
+.fl { display:block; font-size:10px; text-transform:uppercase; letter-spacing:1px; color:var(--text-muted); margin-bottom:5px; }
+.fc {
+  width:100%; background:var(--card); border:1px solid var(--border);
+  border-radius:7px; padding:8px 11px;
+  color:var(--text); font-family:'Nunito',sans-serif; font-size:13px; outline:none;
+  transition:border-color .2s;
+}
+.fc:focus { border-color:var(--accent); }
+select.fc option { background:var(--card); }
+textarea.fc { resize:vertical; min-height:52px; }
+.frow { display:grid; grid-template-columns:1fr 1fr; gap:11px; }
+.modal-ft { display:flex; justify-content:space-between; align-items:center; margin-top:18px; gap:8px; }
+.modal-ft-r { display:flex; gap:7px; }
+.btn { padding:7px 15px; border-radius:7px; border:none; cursor:pointer; font-family:'Nunito',sans-serif; font-size:13px; font-weight:700; transition:all .18s; }
+.btn-danger { background:rgba(224,85,85,.15); color:var(--non-mi-piace); border:1px solid rgba(224,85,85,.3); }
+.btn-danger:hover { background:rgba(224,85,85,.28); }
+.btn-sec { background:var(--card); color:var(--text-muted); border:1px solid var(--border); }
+.btn-sec:hover { background:var(--card-hover); }
+.btn-ok { background:var(--accent); color:#0D0D14; }
+.btn-ok:hover { background:#f0c984; }
+
+/* ── LINKS PANEL ── */
+.links-panel {
+  position:fixed; right:-320px; top:0; bottom:0; width:300px;
+  background:var(--surface); border-left:1px solid var(--border);
+  z-index:200; transition:right .28s; padding:18px 16px;
+  overflow-y:auto; display:flex; flex-direction:column; gap:3px;
+}
+.links-panel.open { right:0; }
+.links-panel h3 { font-family:'Bebas Neue',sans-serif; font-size:18px; letter-spacing:1.5px; color:var(--accent); margin-bottom:12px; }
+.lnk {
+  display:block; padding:7px 10px; border-radius:6px;
+  color:var(--text-muted); text-decoration:none; font-size:12px;
+  border:1px solid transparent; transition:all .15s;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.lnk:hover { border-color:var(--border); background:var(--card); color:var(--accent); }
+.close-lnk { margin-top:10px; padding:8px; border-radius:7px; border:1px solid var(--border); background:var(--card); color:var(--text-muted); cursor:pointer; font-size:12px; font-family:'Nunito',sans-serif; }
+.close-lnk:hover { color:var(--text); background:var(--card-hover); }
+
+/* ── EMPTY ── */
+.empty { text-align:center; padding:28px 8px; color:var(--text-muted); font-size:12px; }
+.empty-ico { font-size:24px; margin-bottom:6px; opacity:.4; }
+
+/* ── SYNC MODAL ── */
+.sync-modal {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:14px; padding:22px; width:100%; max-width:520px;
+  transform:translateY(18px); transition:transform .22s;
+  box-shadow:0 24px 64px rgba(0,0,0,.6);
+}
+.overlay.open .sync-modal { transform:translateY(0); }
+.sync-section {
+  background:var(--card); border:1px solid var(--border);
+  border-radius:10px; padding:14px 15px; margin-bottom:12px;
+}
+.sync-section-title {
+  font-size:11px; text-transform:uppercase; letter-spacing:1.2px;
+  color:var(--text-muted); margin-bottom:10px; display:flex; align-items:center; gap:6px;
+}
+.sync-section-title span { font-size:15px; }
+.sync-row { display:flex; gap:7px; align-items:flex-end; }
+.sync-row .fg { flex:1; margin-bottom:0; }
+.sync-hint { font-size:10px; color:var(--text-muted); margin-top:6px; line-height:1.5; }
+.sync-hint a { color:var(--accent); text-decoration:none; }
+.sync-hint a:hover { text-decoration:underline; }
+.btn-cloud { background:rgba(108,99,255,.18); color:#A09BFF; border:1px solid rgba(108,99,255,.35); }
+.btn-cloud:hover { background:rgba(108,99,255,.32); }
+.btn-export { background:rgba(0,200,151,.14); color:#00C897; border:1px solid rgba(0,200,151,.3); }
+.btn-export:hover { background:rgba(0,200,151,.25); }
+.btn-import { background:rgba(255,159,67,.14); color:#FF9F43; border:1px solid rgba(255,159,67,.3); }
+.btn-import:hover { background:rgba(255,159,67,.25); }
+.sync-status {
+  font-size:11px; padding:6px 10px; border-radius:6px;
+  margin-top:8px; display:none; line-height:1.4;
+}
+.sync-status.ok { background:rgba(0,200,151,.12); color:#00C897; border:1px solid rgba(0,200,151,.25); display:block; }
+.sync-status.err { background:rgba(224,85,85,.12); color:#E05555; border:1px solid rgba(224,85,85,.25); display:block; }
+.sync-status.loading { background:rgba(232,184,109,.1); color:var(--accent); border:1px solid rgba(232,184,109,.2); display:block; }
+.sync-btns-row { display:flex; gap:7px; margin-top:8px; }
+#importFileInput { display:none; }
+
+/* ── TOAST ── */
+.toast {
+  position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(60px);
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:8px; padding:9px 18px; font-size:13px; font-weight:600;
+  box-shadow:0 8px 24px rgba(0,0,0,.4); z-index:900;
+  transition:transform .25s, opacity .25s; opacity:0;
+}
+.toast.show { transform:translateX(-50%) translateY(0); opacity:1; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">🎬 TRACKER <sub id="totalBadge"></sub></div>
+  <div class="search-wrap">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    <input class="search-input" id="searchInput" placeholder="Cerca... (premi / per focalizzare)">
+  </div>
+  <div class="header-stats" id="statsBar"></div>
+  <button class="hbtn hbtn-ghost" onclick="openSync()">☁️ Sync</button>
+  <button class="hbtn hbtn-ghost" onclick="toggleLinks()">🔗 Siti</button>
+  <button class="hbtn hbtn-primary" onclick="openAdd()">＋ Aggiungi</button>
+</header>
+
+<!-- FILTERS -->
+<div class="filters">
+  <span class="flabel">Piattaforma</span>
+  <div class="chips" id="platChips"></div>
+  <div class="fdiv"></div>
+  <span class="flabel">Tipo</span>
+  <div class="type-tog">
+    <button class="ttbtn on" data-t="all"  onclick="setType('all')">Tutti</button>
+    <button class="ttbtn"    data-t="serie" onclick="setType('serie')">📺 Serie</button>
+    <button class="ttbtn"    data-t="film"  onclick="setType('film')">🎬 Film</button>
+  </div>
+</div>
+
+<!-- BOARD -->
+<div class="board-wrap">
+  <div class="board" id="board"></div>
+</div>
+
+<!-- MODAL -->
+<div class="overlay" id="modalOv" onclick="ovClick(event)">
+  <div class="modal">
+    <div class="modal-title" id="modalTitle">AGGIUNGI TITOLO</div>
+    <div class="frow">
+      <div class="fg">
+        <label class="fl">Tipo</label>
+        <select class="fc" id="fType">
+          <option value="serie">📺 Serie</option>
+          <option value="film">🎬 Film</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label class="fl">Stato</label>
+        <select class="fc" id="fStatus">
+          <option value="da_vedere">Da Vedere</option>
+          <option value="in_corso">In Corso</option>
+          <option value="sospeso">Sospeso</option>
+          <option value="finito">Finito / Visto</option>
+          <option value="non_mi_piace">Non Mi Piace</option>
+        </select>
+      </div>
+    </div>
+    <div class="fg">
+      <label class="fl">Titolo</label>
+      <input type="text" class="fc" id="fTitle" placeholder="Nome del titolo...">
+    </div>
+    <div class="frow">
+      <div class="fg">
+        <label class="fl">Piattaforma</label>
+        <select class="fc" id="fPlatform">
+          <option>Netflix</option>
+          <option>Prime Video</option>
+          <option>Disney+</option>
+          <option>Veezie</option>
+          <option>Rai Play</option>
+          <option>Mediaset</option>
+          <option>Dailymotion</option>
+          <option>Subita</option>
+          <option>Generale</option>
+          <option>Altro</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label class="fl">Progressione</label>
+        <input type="text" class="fc" id="fProgress" placeholder="es. S2 E5">
+      </div>
+    </div>
+    <div class="fg">
+      <label class="fl">Note</label>
+      <textarea class="fc" id="fNotes" placeholder="Note, link, osservazioni..."></textarea>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-danger" id="delBtn" onclick="deleteItem()" style="display:none">🗑 Elimina</button>
+      <div class="modal-ft-r">
+        <button class="btn btn-sec" onclick="closeModal()">Annulla</button>
+        <button class="btn btn-ok" onclick="saveItem()">💾 Salva</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SYNC MODAL -->
+<div class="overlay" id="syncOv" onclick="syncOvClick(event)">
+  <div class="sync-modal">
+    <div class="modal-title">☁️ SYNC & BACKUP</div>
+
+    <!-- JSONBIN CLOUD -->
+    <div class="sync-section">
+      <div class="sync-section-title"><span>☁️</span> Cloud Sync — JSONBin.io <em style="color:#5555A0;font-size:9px;margin-left:4px">(GRATUITO)</em></div>
+      <div class="fg">
+        <label class="fl">API Key</label>
+        <input type="password" class="fc" id="jbKey" placeholder="$2a$10$...">
+      </div>
+      <div class="sync-row" style="margin-top:8px">
+        <div class="fg">
+          <label class="fl">Bin ID <em style="font-size:9px;text-transform:none">(vuoto = crea nuovo)</em></label>
+          <input type="text" class="fc" id="jbBin" placeholder="es. 683a12f...">
+        </div>
+      </div>
+      <div class="sync-btns-row">
+        <button class="btn btn-cloud" onclick="cloudSave()">⬆️ Salva sul cloud</button>
+        <button class="btn btn-cloud" onclick="cloudLoad()">⬇️ Carica dal cloud</button>
+      </div>
+      <div class="sync-status" id="jbStatus"></div>
+      <div class="sync-hint">
+        1. Registrati gratis su <a href="https://jsonbin.io" target="_blank">jsonbin.io</a><br>
+        2. Vai su <strong>API Keys</strong> → copia la tua chiave<br>
+        3. La prima volta clicca <em>Salva</em> → ti crea un Bin ID da copiare qui<br>
+        4. Stessa API Key + Bin ID su qualsiasi dispositivo → dati sincronizzati ✓
+      </div>
+    </div>
+
+    <!-- EXPORT / IMPORT -->
+    <div class="sync-section">
+      <div class="sync-section-title"><span>💾</span> Backup manuale (Export / Import JSON)</div>
+      <div class="sync-btns-row">
+        <button class="btn btn-export" onclick="exportJSON()">⬇️ Esporta JSON</button>
+        <button class="btn btn-import" onclick="document.getElementById('importFileInput').click()">⬆️ Importa JSON</button>
+      </div>
+      <input type="file" id="importFileInput" accept=".json" onchange="importJSON(event)">
+      <div class="sync-hint">
+        <strong>Export</strong>: scarica un file <em>serie_tv_backup.json</em> con tutti i dati.<br>
+        <strong>Import</strong>: carica un backup precedente — <em style="color:#E05555">sovrascrive i dati attuali!</em>
+      </div>
+    </div>
+
+    <div style="display:flex;justify-content:flex-end;margin-top:4px">
+      <button class="btn btn-sec" onclick="closeSyncModal()">Chiudi</button>
+    </div>
+  </div>
+</div>
+
+<!-- LINKS PANEL -->
+<div class="links-panel" id="linksPanel">
+  <h3>🔗 SITI STREAMING</h3>
+  <a class="lnk" href="https://veezie.st" target="_blank">veezie.st</a>
+  <a class="lnk" href="https://subita.tv" target="_blank">subita.tv</a>
+  <a class="lnk" href="http://altadefinizione.date/" target="_blank">altadefinizione.date</a>
+  <a class="lnk" href="http://cinemahd.space/" target="_blank">cinemahd.space</a>
+  <a class="lnk" href="https://filmsenzalimiti.vip/" target="_blank">filmsenzalimiti.vip</a>
+  <a class="lnk" href="https://www.cineblog01.global/" target="_blank">cineblog01.global</a>
+  <a class="lnk" href="https://cinefun.co/" target="_blank">cinefun.co</a>
+  <a class="lnk" href="https://filmsenzalimiti.io/" target="_blank">filmsenzalimiti.io</a>
+  <a class="lnk" href="https://cb01.gold/" target="_blank">cb01.gold</a>
+  <a class="lnk" href="https://cb01.style/" target="_blank">cb01.style</a>
+  <a class="lnk" href="https://www.cb01.co/" target="_blank">cb01.co</a>
+  <a class="lnk" href="http://www.filmstreaming.watch/" target="_blank">filmstreaming.watch</a>
+  <a class="lnk" href="https://www.piratestreaming.media/" target="_blank">piratestreaming.media</a>
+  <a class="lnk" href="https://www.altadefinizione4k.stream/" target="_blank">altadefinizione4k.stream</a>
+  <a class="lnk" href="https://www.casacinema.red/" target="_blank">casacinema.red</a>
+  <a class="lnk" href="https://mondoserietv.com/" target="_blank">mondoserietv.com</a>
+  <a class="lnk" href="https://www.seriehd.moda/" target="_blank">seriehd.moda</a>
+  <a class="lnk" href="https://serietvonline.monster/" target="_blank">serietvonline.monster</a>
+  <a class="lnk" href="https://vedohd.video/" target="_blank">vedohd.video</a>
+  <a class="lnk" href="https://www.netfreex.online/" target="_blank">netfreex.online</a>
+  <a class="lnk" href="https://www.filmpertutti.casa/" target="_blank">filmpertutti.casa</a>
+  <a class="lnk" href="https://www.serietvu.club/" target="_blank">serietvu.club</a>
+  <a class="lnk" href="https://eurostreaming.pink/" target="_blank">eurostreaming.pink</a>
+  <a class="lnk" href="https://guardaserie.fun/" target="_blank">guardaserie.fun</a>
+  <a class="lnk" href="https://www.filmstreamhd.it/" target="_blank">filmstreamhd.it</a>
+  <a class="lnk" href="https://www.italiaserie.org/" target="_blank">italiaserie.org</a>
+  <a class="lnk" href="https://www.discoveryplus.com/it/show/i-signori-del-far-west" target="_blank">discoveryplus – I Signori del Far West</a>
+  <button class="close-lnk" onclick="toggleLinks()">✕ Chiudi pannello</button>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+//  DATA
+// ═══════════════════════════════════════════════════════════
+const SKEY = 'serietv_v2';
+
+const INITIAL = [
+// ── NETFLIX Film ──
+{t:'APEX',tp:'film',pl:'Netflix',st:'da_vedere',pr:'',no:''},
+{t:"HIGHWAYMEN - L'ULTIMA IMBOSCATA",tp:'film',pl:'Netflix',st:'da_vedere',pr:'',no:''},
+{t:'OUTSIDE THE WIRE',tp:'film',pl:'Netflix',st:'da_vedere',pr:'',no:''},
+{t:"DEEPWATER HORIZON",tp:'film',pl:'Netflix',st:'da_vedere',pr:'',no:''},
+// ── NETFLIX Serie in corso ──
+{t:'RANSOM CANYON',tp:'serie',pl:'Netflix',st:'in_corso',pr:'S1 E1',no:''},
+{t:'LA PALMA',tp:'serie',pl:'Netflix',st:'in_corso',pr:'S1 E1',no:''},
+{t:'DISINCANTO',tp:'serie',pl:'Netflix',st:'in_corso',pr:'S4 E3',no:''},
+// ── NETFLIX Serie da vedere ──
+{t:'BLOCKBUSTER',tp:'serie',pl:'Netflix',st:'da_vedere',pr:'',no:''},
+{t:'INSIDE JOB',tp:'serie',pl:'Netflix',st:'da_vedere',pr:'',no:''},
+// ── NETFLIX Serie sospeso ──
+{t:'LA RAGAZZA E IL COSMONAUTA',tp:'serie',pl:'Netflix',st:'sospeso',pr:'S1 E1',no:''},
+{t:'THE WATCHER',tp:'serie',pl:'Netflix',st:'sospeso',pr:'S1',no:''},
+{t:'SUPERSTORE',tp:'serie',pl:'Netflix',st:'sospeso',pr:'S1 E1',no:''},
+{t:'THE GUARDIANS OF JUSTICE',tp:'serie',pl:'Netflix',st:'sospeso',pr:'S1 E2',no:''},
+// ── PRIME Film ──
+{t:'THE LAST SON',tp:'film',pl:'Prime Video',st:'da_vedere',pr:'',no:''},
+{t:'SIBERIA',tp:'film',pl:'Prime Video',st:'da_vedere',pr:'',no:''},
+{t:'CHASE SCOMPARSA',tp:'film',pl:'Prime Video',st:'da_vedere',pr:'',no:''},
+{t:'THE MISFITS',tp:'film',pl:'Prime Video',st:'da_vedere',pr:'',no:''},
+// ── PRIME Serie in corso ──
+{t:'SWEETPEA',tp:'serie',pl:'Prime Video',st:'in_corso',pr:'S1 E3',no:''},
+{t:'COUNTDOWN',tp:'serie',pl:'Prime Video',st:'in_corso',pr:'S1 E1',no:''},
+{t:'CITADEL HONEY BUNNY',tp:'serie',pl:'Prime Video',st:'in_corso',pr:'S1 E1',no:''},
+{t:'THE FLASH',tp:'serie',pl:'Prime Video',st:'in_corso',pr:'S7 E13',no:'anche su Veezie'},
+{t:'LA RUOTA DEL TEMPO',tp:'serie',pl:'Prime Video',st:'in_corso',pr:'S3',no:''},
+// ── PRIME Serie da vedere ──
+{t:'BALLARD',tp:'serie',pl:'Prime Video',st:'da_vedere',pr:'S1',no:''},
+{t:'JOAQUIN MURRIETA',tp:'serie',pl:'Prime Video',st:'da_vedere',pr:'',no:'western'},
+{t:'THE STICKY',tp:'serie',pl:'Prime Video',st:'da_vedere',pr:'',no:''},
+// ── PRIME Serie sospeso ──
+{t:'THE WALKING DEAD: WORLD BEYOND',tp:'serie',pl:'Prime Video',st:'sospeso',pr:'S2 E5',no:''},
+{t:'SOLOS',tp:'serie',pl:'Prime Video',st:'sospeso',pr:'S1 E3',no:''},
+{t:'FEAR THE WALKING DEAD',tp:'serie',pl:'Prime Video',st:'sospeso',pr:'S7 E4',no:''},
+{t:'THE DOOM',tp:'serie',pl:'Prime Video',st:'sospeso',pr:'',no:''},
+{t:'THE MESSAGE OF ELSEWHERE',tp:'serie',pl:'Prime Video',st:'sospeso',pr:'',no:''},
+// ── DISNEY+ Film ──
+{t:'UNDER WRAPS 2',tp:'film',pl:'Disney+',st:'da_vedere',pr:'',no:''},
+{t:'LICANTROPO',tp:'film',pl:'Disney+',st:'da_vedere',pr:'',no:''},
+// ── DISNEY+ Serie in corso ──
+{t:'TRACKER',tp:'serie',pl:'Disney+',st:'in_corso',pr:'S3 E1',no:''},
+{t:'BEAUTY',tp:'serie',pl:'Disney+',st:'in_corso',pr:'S1 E1',no:''},
+{t:'IRONHEART',tp:'serie',pl:'Disney+',st:'in_corso',pr:'S1 E1',no:''},
+// ── DISNEY+ Serie da vedere ──
+{t:'DOCTOR WHO 2024',tp:'serie',pl:'Disney+',st:'da_vedere',pr:'S1',no:''},
+{t:'THE WALKING DEAD',tp:'serie',pl:'Disney+',st:'da_vedere',pr:'S11 E16',no:''},
+{t:'TALES OF THE WALKING DEAD',tp:'serie',pl:'Disney+',st:'da_vedere',pr:'',no:''},
+// ── DISNEY+ sospeso ──
+{t:'NO EXIT',tp:'serie',pl:'Disney+',st:'sospeso',pr:'S1',no:''},
+// ── VEEZIE Film ──
+{t:'TRENTAMILA ANNI DI ATTESA',tp:'film',pl:'Veezie',st:'da_vedere',pr:'',no:''},
+{t:'KINGDOM OF THE PLANET',tp:'film',pl:'Veezie',st:'da_vedere',pr:'',no:''},
+{t:'WONKA',tp:'film',pl:'Veezie',st:'da_vedere',pr:'',no:''},
+{t:"FIGLI DELL'INTELLIGENZA ARTIFICIALE",tp:'film',pl:'Veezie',st:'da_vedere',pr:'',no:''},
+{t:'TUTTI TRANNE TE',tp:'film',pl:'Veezie',st:'da_vedere',pr:'',no:''},
+{t:'TIDES',tp:'film',pl:'Veezie',st:'da_vedere',pr:'',no:'fantascienza'},
+{t:'NORTHMAN',tp:'film',pl:'Veezie',st:'da_vedere',pr:'',no:''},
+{t:'GREENLAND',tp:'film',pl:'Veezie',st:'da_vedere',pr:'',no:''},
+{t:'KIMI',tp:'film',pl:'Veezie',st:'da_vedere',pr:'',no:''},
+{t:'FINCH',tp:'film',pl:'Veezie',st:'da_vedere',pr:'',no:''},
+// ── VEEZIE Serie in corso ──
+{t:'PRIMEVAL',tp:'serie',pl:'Veezie',st:'in_corso',pr:'S1 E1',no:''},
+// ── VEEZIE Serie da vedere ──
+{t:'MARSHALS',tp:'serie',pl:'Veezie',st:'da_vedere',pr:'S1 E8',no:''},
+{t:'HORIZON AN AMERICAN SAGA',tp:'serie',pl:'Veezie',st:'da_vedere',pr:'',no:'capitolo 2'},
+{t:'BURN NOTICE',tp:'serie',pl:'Veezie',st:'da_vedere',pr:'',no:''},
+{t:'DEBRIS',tp:'serie',pl:'Veezie',st:'da_vedere',pr:'',no:''},
+{t:'LANDMAN',tp:'serie',pl:'Veezie',st:'da_vedere',pr:'S1 E2',no:''},
+{t:'INTELLIGENCE (Veezie)',tp:'serie',pl:'Veezie',st:'da_vedere',pr:'S1',no:'attendo ita'},
+{t:'NAUTILUS',tp:'serie',pl:'Veezie',st:'da_vedere',pr:'',no:'nn va'},
+{t:'GUNDAM',tp:'serie',pl:'Veezie',st:'da_vedere',pr:'',no:''},
+{t:'SAINT SEIYA: I CAVALIERI DELLO ZODIACO',tp:'serie',pl:'Veezie',st:'da_vedere',pr:'',no:''},
+{t:'THE RAIN',tp:'serie',pl:'Veezie',st:'da_vedere',pr:'',no:''},
+{t:'LA LEGGENDA DI AANG',tp:'serie',pl:'Veezie',st:'da_vedere',pr:'',no:''},
+{t:'BEACON 23',tp:'serie',pl:'Subita',st:'da_vedere',pr:'S1',no:'attendo'},
+{t:'ALIENS RESIDENT',tp:'serie',pl:'Veezie',st:'da_vedere',pr:'S3',no:'attendo ita'},
+{t:'THAT DIRTY BLACK BAG',tp:'serie',pl:'Veezie',st:'da_vedere',pr:'',no:''},
+{t:'ULTIMA NOTTE A TREMOR',tp:'serie',pl:'Veezie',st:'da_vedere',pr:'',no:''},
+{t:'WALKER',tp:'serie',pl:'Veezie',st:'da_vedere',pr:'S2-S3',no:'S1 finito su Mediaset'},
+{t:'THE SON',tp:'serie',pl:'Veezie',st:'da_vedere',pr:'',no:''},
+{t:'BIRDS OF PREY',tp:'serie',pl:'Veezie',st:'da_vedere',pr:'',no:''},
+{t:'THE WINCHESTER',tp:'serie',pl:'Subita',st:'da_vedere',pr:'',no:''},
+{t:'DARK MATTER (S3)',tp:'serie',pl:'Veezie',st:'da_vedere',pr:'S3',no:'S2 finito su Subita'},
+{t:'KILLJOYS (S3-S4)',tp:'serie',pl:'Veezie',st:'da_vedere',pr:'S3-S4',no:'S2 finito ita'},
+{t:'ONISCIENTE',tp:'serie',pl:'Subita',st:'da_vedere',pr:'S1 E1',no:'spagnolo, 3min50'},
+{t:'MOONHAVEN',tp:'serie',pl:'Veezie',st:'da_vedere',pr:'',no:''},
+// ── VEEZIE sospeso ──
+{t:'LA VITA SULLA TERRA (LIFE)',tp:'serie',pl:'Veezie',st:'sospeso',pr:'S1 E2',no:''},
+{t:'FOR ALL MANKIND',tp:'serie',pl:'Veezie',st:'sospeso',pr:'S1 E1',no:''},
+{t:'STARGIRL',tp:'serie',pl:'Veezie',st:'sospeso',pr:'S2 E1',no:''},
+{t:'ROSWELL NEW MEXICO',tp:'serie',pl:'Veezie',st:'sospeso',pr:'S1 E3',no:''},
+{t:'SHAMELESS',tp:'serie',pl:'Veezie',st:'sospeso',pr:'S10 E6',no:''},
+// ── RAI PLAY ──
+{t:'OCCHI DI GATTO',tp:'serie',pl:'Rai Play',st:'in_corso',pr:'S1 E1',no:''},
+{t:'GUNSLINGER',tp:'serie',pl:'Rai Play',st:'da_vedere',pr:'',no:''},
+// ── DAILYMOTION ──
+{t:'CAPITAN HARLOCK SSX',tp:'serie',pl:'Dailymotion',st:'in_corso',pr:'S1 E10',no:''},
+// ── DA VEDERE GENERALE ──
+{t:'THE ARK',tp:'serie',pl:'Subita',st:'da_vedere',pr:'',no:''},
+{t:'TREADSTONE',tp:'serie',pl:'Prime Video',st:'da_vedere',pr:'S1',no:''},
+{t:'LUNANERA',tp:'serie',pl:'Netflix',st:'da_vedere',pr:'S1',no:''},
+{t:"L'IMPERO OTTOMANO",tp:'film',pl:'Netflix',st:'da_vedere',pr:'',no:'documentario'},
+{t:'MONSTER DARK CONTINENT',tp:'film',pl:'Rai Play',st:'da_vedere',pr:'',no:''},
+{t:'PENNY DREADFUL',tp:'serie',pl:'Netflix',st:'da_vedere',pr:'',no:''},
+{t:'INTO THE BADLANDS',tp:'serie',pl:'Generale',st:'da_vedere',pr:'',no:''},
+{t:'TAKEN',tp:'serie',pl:'Generale',st:'da_vedere',pr:'S1',no:''},
+{t:'BLACK MIRROR',tp:'serie',pl:'Netflix',st:'da_vedere',pr:'S1-3',no:''},
+{t:'SANCTUARY',tp:'serie',pl:'Generale',st:'da_vedere',pr:'4 stagioni',no:'guardaserie.online'},
+{t:'BEAUTY AND THE BEAST',tp:'serie',pl:'Generale',st:'da_vedere',pr:'S3 E13',no:''},
+{t:'MIDNIGHT TEXAS',tp:'serie',pl:'Subita',st:'da_vedere',pr:'',no:''},
+{t:'GHOSTED',tp:'serie',pl:'Subita',st:'da_vedere',pr:'',no:''},
+{t:'COLORADO 2016',tp:'serie',pl:'Generale',st:'da_vedere',pr:'S1 E1',no:'filmpertutti'},
+{t:'CAPRICA (da vedere)',tp:'serie',pl:'Generale',st:'da_vedere',pr:'',no:'guardaserie.online'},
+{t:'BLACK SAILS',tp:'serie',pl:'Generale',st:'da_vedere',pr:'',no:''},
+{t:'LUKE CAGE',tp:'serie',pl:'Netflix',st:'da_vedere',pr:'S1',no:''},
+{t:'SUPERNATURAL',tp:'serie',pl:'Generale',st:'da_vedere',pr:'',no:''},
+{t:'SHADOWHUNTERS',tp:'serie',pl:'Netflix',st:'da_vedere',pr:'',no:''},
+{t:"DALL'ALBA AL TRAMONTO",tp:'serie',pl:'Rai Play',st:'da_vedere',pr:'',no:''},
+{t:'THE MESSENGERS',tp:'serie',pl:'Generale',st:'da_vedere',pr:'',no:''},
+{t:'THRESHOLD',tp:'serie',pl:'Generale',st:'da_vedere',pr:'',no:'fantascienza'},
+{t:'THE DRESDEN FILES',tp:'serie',pl:'Generale',st:'da_vedere',pr:'',no:''},
+{t:'MYSTERE',tp:'serie',pl:'Generale',st:'da_vedere',pr:'',no:''},
+{t:'11.22.63',tp:'serie',pl:'Generale',st:'da_vedere',pr:'',no:''},
+{t:'LOST',tp:'serie',pl:'Generale',st:'da_vedere',pr:'S1-6',no:''},
+{t:'THE WHISPERS',tp:'serie',pl:'Generale',st:'da_vedere',pr:'S1',no:''},
+{t:'REAL HUMANS',tp:'serie',pl:'Generale',st:'da_vedere',pr:'S1',no:'guardaserie'},
+{t:'A.D. THE BIBLE CONTINUES',tp:'serie',pl:'Generale',st:'da_vedere',pr:'',no:''},
+{t:'OLYMPUS',tp:'serie',pl:'Generale',st:'da_vedere',pr:'',no:''},
+{t:'DOMINION',tp:'serie',pl:'Generale',st:'da_vedere',pr:'S1-2',no:'guardaserie'},
+{t:'ATLANTIS',tp:'serie',pl:'Generale',st:'da_vedere',pr:'S1 E1',no:''},
+{t:'FIREFLY',tp:'serie',pl:'Generale',st:'da_vedere',pr:'',no:''},
+{t:'ORIGIN',tp:'serie',pl:'Subita',st:'da_vedere',pr:'',no:''},
+// ── NON MI PIACE ──
+{t:'HIS DARK MATERIALS',tp:'serie',pl:'Veezie',st:'non_mi_piace',pr:'S1 E5',no:''},
+{t:'UTOPIA',tp:'serie',pl:'Prime Video',st:'non_mi_piace',pr:'S1 E1',no:''},
+{t:'FLASHBACK IN TAXI DAL PASSATO',tp:'serie',pl:'Prime Video',st:'non_mi_piace',pr:'S1',no:''},
+{t:'HOMECOMING',tp:'serie',pl:'Prime Video',st:'non_mi_piace',pr:'S1 E8',no:''},
+{t:'VAN HELSING',tp:'serie',pl:'Netflix',st:'non_mi_piace',pr:'S3 E13',no:''},
+{t:'DIABLERO',tp:'serie',pl:'Netflix',st:'non_mi_piace',pr:'S1',no:''},
+{t:'THE GIFTED',tp:'serie',pl:'Disney+',st:'non_mi_piace',pr:'S1 E9',no:''},
+{t:'TALES FROM THE LOOP',tp:'serie',pl:'Prime Video',st:'non_mi_piace',pr:'S1 E3',no:''},
+{t:'DOCTOR WHO (vecchio)',tp:'serie',pl:'Altro',st:'non_mi_piace',pr:'S11 E9',no:''},
+{t:'ELECTRIC DREAMS',tp:'serie',pl:'Prime Video',st:'non_mi_piace',pr:'S1 E2',no:''},
+{t:'THE FIRST',tp:'serie',pl:'Altro',st:'non_mi_piace',pr:'S1 E1',no:''},
+{t:'DESIGNATED SURVIVOR',tp:'serie',pl:'Netflix',st:'non_mi_piace',pr:'S3 E4',no:''},
+{t:'DAREDEVIL',tp:'serie',pl:'Netflix',st:'non_mi_piace',pr:'S3 E2',no:''},
+{t:'THE LONG ROAD HOME',tp:'serie',pl:'Altro',st:'non_mi_piace',pr:'S1 E1',no:''},
+{t:'UNBREAKABLE KIMMY SCHMIDT',tp:'serie',pl:'Netflix',st:'non_mi_piace',pr:'S3 E1',no:''},
+{t:'QUANTICO',tp:'serie',pl:'Altro',st:'non_mi_piace',pr:'S2 E1',no:''},
+{t:'THE LIBRARIANS',tp:'serie',pl:'Altro',st:'non_mi_piace',pr:'S1 E1',no:''},
+{t:'ARROW',tp:'serie',pl:'Altro',st:'non_mi_piace',pr:'S3 E7',no:''},
+{t:'KILLER WOMAN',tp:'serie',pl:'Altro',st:'non_mi_piace',pr:'S1 E1',no:''},
+{t:'THE PUNISHER',tp:'serie',pl:'Netflix',st:'non_mi_piace',pr:'S1 E3',no:''},
+{t:'JUSTIFIED',tp:'serie',pl:'Prime Video',st:'non_mi_piace',pr:'S1 E2',no:''},
+{t:'NARCOS',tp:'serie',pl:'Netflix',st:'non_mi_piace',pr:'S2 E10',no:''},
+{t:"DIRK GENTLY'S",tp:'serie',pl:'Netflix',st:'non_mi_piace',pr:'S1 E1',no:''},
+{t:'GRIMM',tp:'serie',pl:'Netflix',st:'non_mi_piace',pr:'S1 E9',no:''},
+{t:'LEGION',tp:'serie',pl:'Altro',st:'non_mi_piace',pr:'S1 E5',no:'x psicopatici'},
+{t:'SALEM',tp:'serie',pl:'Altro',st:'non_mi_piace',pr:'S3 E1',no:'fa proprio schifo'},
+{t:'THE MAGICIANS',tp:'serie',pl:'Prime Video',st:'non_mi_piace',pr:'S1 E8',no:''},
+{t:'HELIX',tp:'serie',pl:'Altro',st:'non_mi_piace',pr:'S1 E1',no:'nn mi piace'},
+// ── FINITI ──
+{t:"L'ETERNAUTA",tp:'serie',pl:'Netflix',st:'finito',pr:'S1',no:''},
+{t:'BANDIDOS',tp:'serie',pl:'Netflix',st:'finito',pr:'S2 E7',no:''},
+{t:'MONARCH',tp:'serie',pl:'Veezie',st:'finito',pr:'S2 E10',no:''},
+{t:'THE MADISON',tp:'serie',pl:'Veezie',st:'finito',pr:'S1 E6',no:''},
+{t:'A KNIGHT OF THE SEVEN KINGDOMS',tp:'serie',pl:'Veezie',st:'finito',pr:'S1 E6',no:''},
+{t:'STAR TREK: STARFLEET ACADEMY',tp:'serie',pl:'Veezie',st:'finito',pr:'S1 E10',no:''},
+{t:'FUBAR',tp:'serie',pl:'Netflix',st:'finito',pr:'S2',no:''},
+{t:'THE ROOKIE',tp:'serie',pl:'Veezie',st:'finito',pr:'S7 E18',no:''},
+{t:'SUPERMAN & LOIS',tp:'serie',pl:'Veezie',st:'finito',pr:'S4 E10',no:''},
+{t:'ROBIN HOOD',tp:'serie',pl:'Generale',st:'finito',pr:'S1 E10',no:''},
+{t:'PLURIBUS',tp:'serie',pl:'Veezie',st:'finito',pr:'S1 E9',no:''},
+{t:'THE ABANDONS',tp:'serie',pl:'Netflix',st:'finito',pr:'S1',no:''},
+{t:'LONGMIRE',tp:'serie',pl:'Veezie',st:'finito',pr:'S6 E10',no:''},
+{t:'UPLOAD',tp:'serie',pl:'Prime Video',st:'finito',pr:'S4 E4',no:''},
+{t:'BILLY THE KID',tp:'serie',pl:'Veezie',st:'finito',pr:'S3 E8',no:''},
+{t:'STAR TREK STRANGE NEW WORLDS',tp:'serie',pl:'Veezie',st:'finito',pr:'S3 E10',no:''},
+{t:'FONDAZIONE',tp:'serie',pl:'Veezie',st:'finito',pr:'S3 E10',no:''},
+{t:'INVASION (2023)',tp:'serie',pl:'Veezie',st:'finito',pr:'S3 E10',no:''},
+{t:'THE WITCHER',tp:'serie',pl:'Netflix',st:'finito',pr:'S4 E8',no:''},
+{t:'OUTLANDER',tp:'serie',pl:'Veezie',st:'finito',pr:'S7 E16',no:''},
+{t:'GOLDRAKE U',tp:'serie',pl:'Rai Play',st:'finito',pr:'S1',no:''},
+{t:'BUTTERFLY',tp:'serie',pl:'Prime Video',st:'finito',pr:'S1 E6',no:''},
+{t:'THE LAST OF US',tp:'serie',pl:'Veezie',st:'finito',pr:'S2 E6',no:''},
+{t:'JURASSIC WORLD: LA TEORIA DEL CAOS',tp:'serie',pl:'Netflix',st:'finito',pr:'S3',no:''},
+{t:'KAOS',tp:'serie',pl:'Netflix',st:'finito',pr:'S1',no:''},
+{t:'ANDOR',tp:'serie',pl:'Disney+',st:'finito',pr:'S2 E12',no:''},
+{t:'1923',tp:'serie',pl:'Veezie',st:'finito',pr:'S2',no:''},
+{t:'TERRITORY',tp:'serie',pl:'Veezie',st:'finito',pr:'S1 E6',no:''},
+{t:'SIREN',tp:'serie',pl:'Veezie',st:'finito',pr:'S3 E10',no:''},
+{t:'LA CASA DI DAVIDE',tp:'serie',pl:'Prime Video',st:'finito',pr:'S1 E8',no:''},
+{t:'REACHER',tp:'serie',pl:'Prime Video',st:'finito',pr:'S3',no:''},
+{t:'DUNE: PROPHECY',tp:'serie',pl:'Veezie',st:'finito',pr:'S1 E6',no:''},
+{t:'FALLEN',tp:'serie',pl:'Veezie',st:'finito',pr:'S1 E8',no:''},
+{t:'LIONESS',tp:'serie',pl:'Veezie',st:'finito',pr:'S2',no:''},
+{t:'SILO',tp:'serie',pl:'Veezie',st:'finito',pr:'S2 E10',no:''},
+{t:'AMERICAN PRIMEVAL',tp:'serie',pl:'Veezie',st:'finito',pr:'S1',no:'western'},
+{t:'SKELETON CREW',tp:'serie',pl:'Disney+',st:'finito',pr:'S1 E8',no:''},
+{t:'TOMB RAIDER: LA LEGGENDA DI LARA CROFT',tp:'serie',pl:'Veezie',st:'finito',pr:'S1',no:''},
+{t:'YELLOWSTONE',tp:'serie',pl:'Veezie',st:'finito',pr:'S5 E8',no:''},
+{t:'THE RIGS',tp:'serie',pl:'Prime Video',st:'finito',pr:'S2 E6',no:''},
+{t:'STAR TREK DISCOVERY',tp:'serie',pl:'Veezie',st:'finito',pr:'S5 E10',no:''},
+{t:'HOUSE OF DRAGON',tp:'serie',pl:'Veezie',st:'finito',pr:'S2 E8',no:''},
+{t:'GRENDIZER U',tp:'serie',pl:'Veezie',st:'finito',pr:'S1 E13',no:''},
+{t:'BIG SKY',tp:'serie',pl:'Disney+',st:'finito',pr:'S3',no:''},
+{t:'SLAVS',tp:'serie',pl:'Veezie',st:'finito',pr:'S1',no:''},
+{t:'THE ACOLYTE - LA SEGUACE',tp:'serie',pl:'Disney+',st:'finito',pr:'S1',no:''},
+{t:'MY LADY JANE',tp:'serie',pl:'Prime Video',st:'finito',pr:'S1',no:''},
+{t:'THOSE ABOUT TO DIE',tp:'serie',pl:'Prime Video',st:'finito',pr:'S1',no:''},
+{t:'FRINGE',tp:'serie',pl:'Prime Video',st:'finito',pr:'S5 E13',no:''},
+{t:'DARK MATTER 2024',tp:'serie',pl:'Veezie',st:'finito',pr:'S1 E9',no:''},
+{t:'THE PRINCESS (SPANISH)',tp:'serie',pl:'Veezie',st:'finito',pr:'S2 E8',no:''},
+{t:'OUTER RANGE',tp:'serie',pl:'Netflix',st:'finito',pr:'S4 E10',no:''},
+{t:'PAULINE',tp:'serie',pl:'Disney+',st:'finito',pr:'S1',no:''},
+{t:'STAR TREK: LOWER DECKS',tp:'serie',pl:'Veezie',st:'finito',pr:'S5 E10',no:''},
+{t:'LAWMEN - BASS REEVES',tp:'serie',pl:'Veezie',st:'finito',pr:'S1 E8',no:''},
+{t:'IL PROBLEMA DEI 3 CORPI',tp:'serie',pl:'Veezie',st:'finito',pr:'S1 E8',no:''},
+{t:'SHOGUN',tp:'serie',pl:'Disney+',st:'finito',pr:'S1 E10',no:''},
+{t:'FALLOUT',tp:'serie',pl:'Prime Video',st:'finito',pr:'S1',no:''},
+{t:'CONSTELLATION',tp:'serie',pl:'Veezie',st:'finito',pr:'S1',no:''},
+{t:'RENEGADE NELL',tp:'serie',pl:'Disney+',st:'finito',pr:'S1',no:''},
+{t:'HALO',tp:'serie',pl:'Veezie',st:'finito',pr:'S2 E8',no:''},
+{t:'AGENTE CARTER',tp:'serie',pl:'Disney+',st:'finito',pr:'S2 E10',no:''},
+{t:'A MURDER AT THE END OF THE WORLD',tp:'serie',pl:'Disney+',st:'finito',pr:'S1 E7',no:''},
+{t:'DOCTOR WHO SPECIAL 1-2-3',tp:'serie',pl:'Disney+',st:'finito',pr:'',no:''},
+{t:'KUNG FU PANDA CAVALIERE DRAGONE',tp:'serie',pl:'Veezie',st:'finito',pr:'S3 E19',no:''},
+{t:'WILDERNESS',tp:'serie',pl:'Prime Video',st:'finito',pr:'S1',no:''},
+{t:'LOKI',tp:'serie',pl:'Disney+',st:'finito',pr:'S2 E6',no:''},
+{t:'LA BREA',tp:'serie',pl:'Veezie',st:'finito',pr:'S2 E14',no:''},
+{t:'CAPITAN HARLOCK 1978',tp:'serie',pl:'Prime Video',st:'finito',pr:'',no:''},
+{t:'AHSOKA',tp:'serie',pl:'Disney+',st:'finito',pr:'S1',no:''},
+{t:'LEGENDS OF TOMORROW',tp:'serie',pl:'Netflix',st:'finito',pr:'S7 E13',no:''},
+{t:'RAGNAROK',tp:'serie',pl:'Netflix',st:'finito',pr:'S3 E6',no:''},
+{t:'GOOD OMENS',tp:'serie',pl:'Prime Video',st:'finito',pr:'S2',no:''},
+{t:'SECRET INVASION',tp:'serie',pl:'Disney+',st:'finito',pr:'S1 E6',no:''},
+{t:'CHAPELWAITE',tp:'serie',pl:'Disney+',st:'finito',pr:'S1 E10',no:''},
+{t:'SWEET TOOTH',tp:'serie',pl:'Netflix',st:'finito',pr:'S2',no:''},
+{t:'THE MANDALORIAN',tp:'serie',pl:'Disney+',st:'finito',pr:'S3 E8',no:''},
+{t:'NIGHT AGENT',tp:'serie',pl:'Netflix',st:'finito',pr:'S1 E10',no:''},
+{t:'LAST LIGHT',tp:'serie',pl:'Prime Video',st:'finito',pr:'S1',no:''},
+{t:'STAR TREK: PICARD',tp:'serie',pl:'Prime Video',st:'finito',pr:'S3 E10',no:''},
+{t:'ALICE IN BORDERLAND',tp:'serie',pl:'Netflix',st:'finito',pr:'S2',no:''},
+{t:'STARGATE ORIGINS',tp:'serie',pl:'Prime Video',st:'finito',pr:'S1',no:'visto in inglese'},
+{t:'CARNIVAL ROW',tp:'serie',pl:'Prime Video',st:'finito',pr:'S2',no:''},
+{t:'SWAT',tp:'serie',pl:'Netflix',st:'finito',pr:'S5 E22',no:''},
+{t:'IL MISTERO DEI TEMPLARI',tp:'serie',pl:'Disney+',st:'finito',pr:'S1',no:''},
+{t:"L'UOMO CHE CADDE SULLA TERRA",tp:'serie',pl:'Veezie',st:'finito',pr:'S1 E10',no:''},
+{t:'RAISED BY WOLVES',tp:'serie',pl:'Veezie',st:'finito',pr:'S2 E8',no:''},
+{t:'WAR OF THE WORLDS',tp:'serie',pl:'Disney+',st:'finito',pr:'S3',no:''},
+{t:'WILLOW',tp:'serie',pl:'Disney+',st:'finito',pr:'S1',no:''},
+{t:'BLOOD ORIGIN THE WITCHER',tp:'serie',pl:'Netflix',st:'finito',pr:'S1',no:''},
+{t:'RESIDENT EVIL',tp:'serie',pl:'Netflix',st:'finito',pr:'S1',no:''},
+{t:'VITA DA COWBOY',tp:'serie',pl:'Netflix',st:'finito',pr:'S1',no:''},
+{t:'MERCOLEDI',tp:'serie',pl:'Netflix',st:'finito',pr:'S1',no:''},
+{t:'BATWOMAN',tp:'serie',pl:'Veezie',st:'finito',pr:'S3 E13',no:''},
+{t:'THE PERIPHERAL (INVERSO)',tp:'serie',pl:'Prime Video',st:'finito',pr:'S1',no:''},
+{t:'1883',tp:'serie',pl:'Veezie',st:'finito',pr:'S1 E10',no:''},
+{t:'MANIFEST',tp:'serie',pl:'Netflix',st:'finito',pr:'S4',no:''},
+{t:'WARRIOR NUN',tp:'serie',pl:'Netflix',st:'finito',pr:'S2 E8',no:''},
+{t:'ZOOTROPOLIS',tp:'serie',pl:'Disney+',st:'finito',pr:'S1',no:''},
+{t:'THE 100',tp:'serie',pl:'Veezie',st:'finito',pr:'S7 E16',no:''},
+{t:'THE ORVILLE',tp:'serie',pl:'Disney+',st:'finito',pr:'S3 E10',no:''},
+{t:'GLI ANELLI DEL POTERE',tp:'serie',pl:'Prime Video',st:'finito',pr:'S1',no:''},
+{t:'WILD REPUBLIC',tp:'serie',pl:'Rai Play',st:'finito',pr:'S1',no:''},
+{t:'OBI-WAN KENOBI',tp:'serie',pl:'Disney+',st:'finito',pr:'S1',no:''},
+{t:'SENZA CONFINI',tp:'serie',pl:'Prime Video',st:'finito',pr:'S1',no:''},
+{t:'LA CATTEDRALE DEL MARE',tp:'serie',pl:'Netflix',st:'finito',pr:'S1',no:''},
+{t:'NOTTE STELLATA',tp:'serie',pl:'Prime Video',st:'finito',pr:'S1',no:''},
+{t:'CLARK',tp:'serie',pl:'Netflix',st:'finito',pr:'S1 E5',no:''},
+{t:'GLI EREDI DELLA TERRA',tp:'serie',pl:'Netflix',st:'finito',pr:'S1 E8',no:''},
+{t:'SNOWPIERCER',tp:'serie',pl:'Netflix',st:'finito',pr:'S3',no:''},
+{t:'BENVENUTI A EDEN',tp:'serie',pl:'Netflix',st:'finito',pr:'S2',no:''},
+{t:'MOON KNIGHT',tp:'serie',pl:'Disney+',st:'finito',pr:'S1',no:''},
+{t:'VENNE DAL FREDDO',tp:'serie',pl:'Netflix',st:'finito',pr:'S1 E8',no:''},
+{t:'THE LAST KINGDOM',tp:'serie',pl:'Netflix',st:'finito',pr:'S5 E10',no:''},
+{t:'FERIA',tp:'serie',pl:'Netflix',st:'finito',pr:'S1',no:''},
+{t:'SPACE FORCE',tp:'serie',pl:'Netflix',st:'finito',pr:'S2',no:''},
+{t:'BOBA FETT',tp:'serie',pl:'Disney+',st:'finito',pr:'S1 E7',no:''},
+{t:'BROOKLYN NINE NINE',tp:'serie',pl:'Netflix',st:'finito',pr:'S7',no:''},
+{t:'THE EXPANSE',tp:'serie',pl:'Prime Video',st:'finito',pr:'S6',no:''},
+{t:'SUPERGIRL',tp:'serie',pl:'Veezie',st:'finito',pr:'S6 E20',no:''},
+{t:'HAWKEYE',tp:'serie',pl:'Disney+',st:'finito',pr:'S1',no:''},
+{t:'JURASSIC WORLD',tp:'serie',pl:'Netflix',st:'finito',pr:'S4',no:''},
+{t:'THE SILENT SEA',tp:'serie',pl:'Netflix',st:'finito',pr:'S1 E8',no:''},
+{t:'SQUID GAME',tp:'serie',pl:'Netflix',st:'finito',pr:'S1 E9',no:''},
+{t:'LA CASA DI CARTA',tp:'serie',pl:'Netflix',st:'finito',pr:'S5 E10',no:''},
+{t:'LOST IN SPACE',tp:'serie',pl:'Netflix',st:'finito',pr:'S3 E8',no:''},
+{t:'COWBOY BEBOP',tp:'serie',pl:'Netflix',st:'finito',pr:'S1 E10',no:''},
+{t:'HANNA',tp:'serie',pl:'Prime Video',st:'finito',pr:'S3 E8',no:''},
+{t:"Y - L'ULTIMO UOMO",tp:'serie',pl:'Disney+',st:'finito',pr:'S1 E10',no:''},
+{t:'WHAT IF',tp:'serie',pl:'Disney+',st:'finito',pr:'S1 E9',no:''},
+{t:'NEXT',tp:'serie',pl:'Disney+',st:'finito',pr:'S1',no:''},
+{t:'LOCKE & KEY',tp:'serie',pl:'Netflix',st:'finito',pr:'S2 E10',no:''},
+{t:'MOTHERLAND FORT SALEM',tp:'serie',pl:'Prime Video',st:'finito',pr:'S2 E10',no:''},
+{t:'ANOTHER LIFE',tp:'serie',pl:'Netflix',st:'finito',pr:'S2 E10',no:''},
+{t:'DIVE CLUB',tp:'serie',pl:'Netflix',st:'finito',pr:'S1 E12',no:''},
+{t:'LUCIFER',tp:'serie',pl:'Netflix',st:'finito',pr:'S6 E10',no:''},
+{t:'THE FALCON & WINTER SOLDIER',tp:'serie',pl:'Disney+',st:'finito',pr:'S1',no:''},
+{t:'WANDA VISION',tp:'serie',pl:'Disney+',st:'finito',pr:'S1',no:''},
+{t:'EL CID',tp:'serie',pl:'Prime Video',st:'finito',pr:'S2',no:''},
+{t:'THE GIFT',tp:'serie',pl:'Netflix',st:'finito',pr:'S3',no:''},
+{t:"JUPITER'S LEGACY",tp:'serie',pl:'Netflix',st:'finito',pr:'S1',no:''},
+{t:'THE STAND',tp:'serie',pl:'Veezie',st:'finito',pr:'S1 E9',no:''},
+{t:'COUNTRY COMFORT',tp:'serie',pl:'Netflix',st:'finito',pr:'S1 E4',no:''},
+{t:'BEFORE PINTUS',tp:'serie',pl:'Prime Video',st:'finito',pr:'S1 E8',no:''},
+{t:'MERLIN',tp:'serie',pl:'Netflix',st:'finito',pr:'S5 E13',no:''},
+{t:'QUASI PERFETTA',tp:'serie',pl:'Netflix',st:'finito',pr:'S1',no:''},
+{t:'PROJECT BLUE BOOK',tp:'serie',pl:'Veezie',st:'finito',pr:'S2 E10',no:''},
+{t:'LA REGINA DEGLI SCACCHI',tp:'serie',pl:'Netflix',st:'finito',pr:'S1',no:''},
+{t:'TRIBES OF EUROPA',tp:'serie',pl:'Netflix',st:'finito',pr:'S1',no:''},
+{t:'THE CREW',tp:'serie',pl:'Netflix',st:'finito',pr:'S1 E10',no:''},
+{t:'THE GOOD PLACE',tp:'serie',pl:'Netflix',st:'finito',pr:'S4 E13',no:''},
+{t:'FATE',tp:'serie',pl:'Netflix',st:'finito',pr:'S1 E6',no:''},
+{t:'THE WILDS',tp:'serie',pl:'Prime Video',st:'finito',pr:'S1 E10',no:''},
+{t:'LA BARRIERA',tp:'serie',pl:'Netflix',st:'finito',pr:'S1 E13',no:''},
+{t:'AGENTS OF S.H.I.E.L.D.',tp:'serie',pl:'Netflix',st:'finito',pr:'S7',no:''},
+{t:'THE GOOD LORD BIRD',tp:'serie',pl:'Veezie',st:'finito',pr:'S1',no:''},
+{t:'THE BOYS',tp:'serie',pl:'Prime Video',st:'finito',pr:'S2 E8',no:''},
+{t:'BARBARI',tp:'serie',pl:'Netflix',st:'finito',pr:'S2 E6',no:''},
+{t:'LA REVOLUTION',tp:'serie',pl:'Netflix',st:'finito',pr:'S1 E8',no:''},
+{t:'TITANS',tp:'serie',pl:'Netflix',st:'finito',pr:'S3 E13',no:''},
+{t:'AWAY',tp:'serie',pl:'Netflix',st:'finito',pr:'S1 E10',no:''},
+{t:'BIOHACKER',tp:'serie',pl:'Netflix',st:'finito',pr:'S1',no:''},
+{t:'THE NEW LEGEND OF MONKEY',tp:'serie',pl:'Netflix',st:'finito',pr:'S2 E10',no:''},
+{t:"C'ERA UNA VOLTA",tp:'serie',pl:'Netflix',st:'finito',pr:'S7',no:''},
+{t:'CURSED',tp:'serie',pl:'Netflix',st:'finito',pr:'S1',no:''},
+{t:'DARK',tp:'serie',pl:'Netflix',st:'finito',pr:'S3',no:''},
+{t:'THE FUTURE MAN',tp:'serie',pl:'Prime Video',st:'finito',pr:'S3 E8',no:''},
+{t:'PRISON BREAK',tp:'serie',pl:'Netflix',st:'finito',pr:'S5 E9',no:''},
+{t:'CAPRICA',tp:'serie',pl:'Veezie',st:'finito',pr:'S1 E18',no:''},
+{t:'COLONY',tp:'serie',pl:'Netflix',st:'finito',pr:'S3 E13',no:''},
+{t:'LETTERA AL RE',tp:'serie',pl:'Netflix',st:'finito',pr:'S1 E6',no:''},
+{t:'ALTERED CARBON',tp:'serie',pl:'Netflix',st:'finito',pr:'S2 E8',no:''},
+{t:'VIKINGS',tp:'serie',pl:'Netflix',st:'finito',pr:'S6 E20',no:''},
+{t:'THE CROSSING',tp:'serie',pl:'Prime Video',st:'finito',pr:'S1 E11',no:''},
+{t:'WHISKEY CAVALIER',tp:'serie',pl:'Altro',st:'finito',pr:'S1 E13',no:''},
+{t:'THE LAST SHIP',tp:'serie',pl:'Altro',st:'finito',pr:'S5 E10',no:''},
+{t:'STITCHERS',tp:'serie',pl:'Veezie',st:'finito',pr:'S3 E10',no:''},
+{t:'OCTOBER FACTION',tp:'serie',pl:'Netflix',st:'finito',pr:'S1 E10',no:''},
+{t:'THE RANCH',tp:'serie',pl:'Netflix',st:'finito',pr:'S8 E10',no:''},
+{t:'MISSIONS',tp:'serie',pl:'Rai Play',st:'finito',pr:'S2 E10',no:''},
+{t:'KRYPTON',tp:'serie',pl:'Altro',st:'finito',pr:'S2 E18',no:''},
+{t:'DRACULA',tp:'serie',pl:'Netflix',st:'finito',pr:'S1 E3',no:''},
+{t:'MESSIAH',tp:'serie',pl:'Netflix',st:'finito',pr:'S1 E10',no:''},
+{t:'NATALE CON UNO SCONOSCIUTO',tp:'serie',pl:'Netflix',st:'finito',pr:'S2 E6',no:''},
+{t:'VWARS',tp:'serie',pl:'Netflix',st:'finito',pr:'S1 E10',no:''},
+{t:'SWAMP THING',tp:'serie',pl:'Prime Video',st:'finito',pr:'S1 E10',no:''},
+{t:'BUON QUEL CHE VI PARE',tp:'serie',pl:'Netflix',st:'finito',pr:'S1',no:''},
+{t:'MARS',tp:'serie',pl:'Netflix',st:'finito',pr:'S2 E6',no:''},
+{t:'KNIGHTFALL',tp:'serie',pl:'Altro',st:'finito',pr:'S2 E10',no:''},
+{t:'THE MAN IN THE HIGH CASTLE',tp:'serie',pl:'Prime Video',st:'finito',pr:'S4 E10',no:''},
+{t:'LIVING WITH YOURSELF',tp:'serie',pl:'Netflix',st:'finito',pr:'S1 E8',no:''},
+{t:'THE ORDER',tp:'serie',pl:'Netflix',st:'finito',pr:'S2',no:''},
+{t:'JESSICA JONES',tp:'serie',pl:'Netflix',st:'finito',pr:'S3',no:''},
+{t:'THE DRESDEN',tp:'serie',pl:'Prime Video',st:'finito',pr:'S1 E12',no:''},
+{t:'THE I-LAND',tp:'serie',pl:'Netflix',st:'finito',pr:'S1 E7',no:''},
+{t:'STRANGER THINGS',tp:'serie',pl:'Netflix',st:'finito',pr:'S3',no:''},
+{t:'GOTHAM',tp:'serie',pl:'Altro',st:'finito',pr:'S5 E12',no:''},
+{t:'MEGLIO DI NOI',tp:'serie',pl:'Netflix',st:'finito',pr:'S1 E16',no:''},
+{t:'WU ASSASSINS',tp:'serie',pl:'Netflix',st:'finito',pr:'S1',no:''},
+{t:'HUMANS',tp:'serie',pl:'Altro',st:'finito',pr:'S3 E8',no:''},
+{t:'IL TRONO DI SPADE',tp:'serie',pl:'Generale',st:'finito',pr:'S8 E6',no:''},
+{t:'12 MONKEYS',tp:'serie',pl:'Netflix',st:'finito',pr:'S3 E13',no:''},
+{t:'WESTWORLD',tp:'serie',pl:'Altro',st:'finito',pr:'S2 E10',no:''},
+{t:"L'IMPERO ROMANO",tp:'serie',pl:'Generale',st:'finito',pr:'S3',no:''},
+{t:'THE WIDOW',tp:'serie',pl:'Prime Video',st:'finito',pr:'S1',no:''},
+{t:'NIGHTFLYERS',tp:'serie',pl:'Netflix',st:'finito',pr:'S1 E10',no:''},
+{t:'SALVATION',tp:'serie',pl:'Netflix',st:'finito',pr:'S2 E13',no:''},
+{t:'TRAVELERS',tp:'serie',pl:'Netflix',st:'finito',pr:'S3 E10',no:''},
+{t:'THE MUSKETEERS',tp:'serie',pl:'Netflix',st:'finito',pr:'S3 E10',no:''},
+{t:'IN FUGA',tp:'serie',pl:'Generale',st:'finito',pr:'S1',no:''},
+{t:'FRONTIERA',tp:'serie',pl:'Netflix',st:'finito',pr:'S3',no:''},
+{t:'BITTEN',tp:'serie',pl:'Generale',st:'finito',pr:'S3 E10',no:''},
+{t:'UNDER THE DOME',tp:'serie',pl:'Generale',st:'finito',pr:'S3 E13',no:''},
+{t:'GOOD GIRLS',tp:'serie',pl:'Generale',st:'finito',pr:'S1',no:''},
+{t:'MANIAC',tp:'serie',pl:'Netflix',st:'finito',pr:'S1',no:'miniserie'},
+{t:'GLOW',tp:'serie',pl:'Netflix',st:'finito',pr:'S3',no:''},
+{t:'AMERICAN GODS',tp:'serie',pl:'Prime Video',st:'finito',pr:'S1',no:''},
+{t:'NO TOMORROW',tp:'serie',pl:'Rai Play',st:'finito',pr:'S1 E13',no:''},
+{t:'STRIKE BACK',tp:'serie',pl:'Veezie',st:'finito',pr:'S6 E10',no:''},
+{t:'BLACK LIGHTNING',tp:'serie',pl:'Netflix',st:'finito',pr:'S1 E13',no:''},
+{t:'SANTA CLARITA DIET',tp:'serie',pl:'Netflix',st:'finito',pr:'S2 E10',no:''},
+{t:'TROY',tp:'serie',pl:'Netflix',st:'finito',pr:'S1 E8',no:''},
+{t:'SHANNARA',tp:'serie',pl:'Altro',st:'finito',pr:'S2 E10',no:''},
+{t:'ZOO',tp:'serie',pl:'Netflix',st:'finito',pr:'S3 E13',no:''},
+{t:'I CAVALIERI DELLO ZODIACO PARTE 2',tp:'serie',pl:'Netflix',st:'finito',pr:'',no:''},
+{t:'DISJOINTED',tp:'serie',pl:'Netflix',st:'finito',pr:'S2 E10',no:''},
+{t:'WYNONNA EARP',tp:'serie',pl:'Netflix',st:'finito',pr:'S2',no:''},
+{t:'GODLESS',tp:'serie',pl:'Netflix',st:'finito',pr:'S1 E7',no:''},
+{t:'THE TICK',tp:'serie',pl:'Generale',st:'finito',pr:'S1 E6',no:''},
+{t:'PROVACI ANCORA GARY',tp:'serie',pl:'Generale',st:'finito',pr:'S2 E17',no:''},
+{t:'ZELIG 2016',tp:'serie',pl:'Veezie',st:'finito',pr:'E5',no:''},
+{t:'ASCENSION',tp:'serie',pl:'Generale',st:'finito',pr:'S1 E6',no:''},
+{t:"THE CHILDHOOD'S END",tp:'serie',pl:'Generale',st:'finito',pr:'S1 E6',no:''},
+{t:'MARCO POLO',tp:'serie',pl:'Netflix',st:'finito',pr:'S2 E10',no:''},
+{t:'DEFENDER',tp:'serie',pl:'Generale',st:'finito',pr:'S1 E8',no:''},
+{t:'THE LEFTOVERS',tp:'serie',pl:'Generale',st:'finito',pr:'S3 E8',no:'bello'},
+{t:'ORANGE IS THE NEW BLACK',tp:'serie',pl:'Netflix',st:'finito',pr:'S5 E13',no:''},
+{t:'LE AVVENTURE DI HOOTEN & THE LADY',tp:'serie',pl:'Generale',st:'finito',pr:'S1 E8',no:''},
+{t:'IRON FIST',tp:'serie',pl:'Netflix',st:'finito',pr:'S1 E13',no:''},
+{t:'APB',tp:'serie',pl:'Generale',st:'finito',pr:'S1 E12',no:''},
+{t:'ROMA',tp:'serie',pl:'Generale',st:'finito',pr:'S2 E10',no:''},
+{t:'HELL ON WHEELS',tp:'serie',pl:'Altro',st:'finito',pr:'S5 E14',no:''},
+{t:'EXTANT',tp:'serie',pl:'Generale',st:'finito',pr:'S2 E13',no:'bello'},
+{t:'DUE UOMINI E MEZZO',tp:'serie',pl:'Generale',st:'finito',pr:'S12 E16',no:''},
+{t:'THE OA',tp:'serie',pl:'Generale',st:'finito',pr:'S1 E8',no:''},
+{t:'CONTINUUM',tp:'serie',pl:'Generale',st:'finito',pr:'S4 E6',no:''},
+{t:'BANSHEE',tp:'serie',pl:'Generale',st:'finito',pr:'S4 E8',no:''},
+{t:'THE AFFAIR',tp:'serie',pl:'Generale',st:'finito',pr:'S3 E10',no:'palloso'},
+{t:'WAYWARD PINES',tp:'serie',pl:'Generale',st:'finito',pr:'S2 E10',no:''},
+{t:"DA VINCI'S DEMONS",tp:'serie',pl:'Generale',st:'finito',pr:'S3',no:''},
+{t:'REVOLUTION',tp:'serie',pl:'Generale',st:'finito',pr:'S2 E22',no:''},
+{t:'THE STRAIN',tp:'serie',pl:'Generale',st:'finito',pr:'S1',no:'cavolata'},
+{t:'BALLERS',tp:'serie',pl:'Generale',st:'finito',pr:'S1',no:'senza senso'},
+{t:'TEXAS RISING',tp:'serie',pl:'Generale',st:'finito',pr:'S1',no:'bello'},
+{t:'INTELLIGENCE',tp:'serie',pl:'Generale',st:'finito',pr:'S1',no:'bello'},
+{t:'SAMURAI GIRL',tp:'serie',pl:'Generale',st:'finito',pr:'S1 E3',no:''},
+{t:'HAWAII FIVE-O',tp:'serie',pl:'Generale',st:'finito',pr:'S5 E25',no:''},
+{t:'FALLING SKIES',tp:'serie',pl:'Generale',st:'finito',pr:'S5 E10',no:''},
+{t:'DEFYING GRAVITY',tp:'serie',pl:'Generale',st:'finito',pr:'S1 E13',no:''},
+{t:'INHUMANS',tp:'serie',pl:'Generale',st:'finito',pr:'S1 E8',no:''},
+{t:'INVASION 2021',tp:'serie',pl:'Generale',st:'finito',pr:'S1',no:''},
+{t:'GOLDRAKE RIFACIMENTO',tp:'serie',pl:'Rai Play',st:'finito',pr:'S1 E12',no:''},
+{t:'NINE PERFECT STRANGERS',tp:'serie',pl:'Disney+',st:'finito',pr:'S1 E8',no:''},
+{t:'VIKINGS VALHALLA',tp:'serie',pl:'Netflix',st:'finito',pr:'S1 E8',no:''},
+// ── FILM VISTI ──
+{t:'FURIOSA',tp:'film',pl:'Generale',st:'finito',pr:'',no:''},
+{t:'LA RAGAZZA DEL TRENO',tp:'film',pl:'Generale',st:'finito',pr:'',no:''},
+{t:'IL GLADIATORE 2',tp:'film',pl:'Generale',st:'finito',pr:'',no:''},
+{t:'THE FALL GUY',tp:'film',pl:'Generale',st:'finito',pr:'',no:''},
+{t:'BAD BOYS: RIDE OR DIE',tp:'film',pl:'Generale',st:'finito',pr:'',no:''},
+{t:'CIVIL WAR',tp:'film',pl:'Prime Video',st:'finito',pr:'',no:''},
+{t:'ATLAS',tp:'film',pl:'Generale',st:'finito',pr:'',no:''},
+{t:'TOP GUN MAVERICK',tp:'film',pl:'Generale',st:'finito',pr:'',no:''},
+{t:'DUNE 2',tp:'film',pl:'Generale',st:'finito',pr:'',no:''},
+{t:'INSIDE OUT 2',tp:'film',pl:'Generale',st:'finito',pr:'',no:''},
+{t:'FREELANCE',tp:'film',pl:'Generale',st:'finito',pr:'',no:''},
+{t:'INDIANA JONES E IL QUADRANTE DEL DESTINO',tp:'film',pl:'Generale',st:'finito',pr:'',no:''},
+{t:'REMINISCENCE',tp:'film',pl:'Generale',st:'finito',pr:'',no:''},
+{t:'MEDIEVALIS',tp:'film',pl:'Generale',st:'finito',pr:'',no:''},
+{t:'BLACK ADAM',tp:'film',pl:'Veezie',st:'finito',pr:'',no:''},
+{t:'TROPPO CATTIVI',tp:'film',pl:'Veezie',st:'finito',pr:'',no:''},
+{t:'THE BATMAN',tp:'film',pl:'Veezie',st:'finito',pr:'',no:''},
+{t:'VENOM: CARNAGE',tp:'film',pl:'Netflix',st:'finito',pr:'',no:''},
+{t:"L'ERA GLACIALE - BUCK",tp:'film',pl:'Generale',st:'finito',pr:'',no:''},
+{t:"LA FORMA DELL'ACQUA",tp:'film',pl:'Generale',st:'finito',pr:'',no:''},
+{t:'SPIDERMAN NO WAY HOME',tp:'film',pl:'Veezie',st:'finito',pr:'',no:''},
+{t:'A QUIET PLACE 2',tp:'film',pl:'Generale',st:'finito',pr:'',no:''},
+{t:'MATRIX',tp:'film',pl:'Generale',st:'finito',pr:'',no:''},
+{t:'WONDER WOMAN 1984',tp:'film',pl:'Generale',st:'finito',pr:'',no:''},
+{t:'MUTANT CHRONICLES',tp:'film',pl:'Rai Play',st:'finito',pr:'',no:''},
+{t:'WONDER WOMAN',tp:'film',pl:'Generale',st:'finito',pr:'',no:''},
+{t:'KING ARTHUR',tp:'film',pl:'Generale',st:'finito',pr:'',no:''},
+{t:'ALIEN COVENANT',tp:'film',pl:'Generale',st:'finito',pr:'',no:''},
+{t:'PIRATI DEI CARAIBI - SALAZAR',tp:'film',pl:'Generale',st:'finito',pr:'',no:''},
+{t:'UNDERWORLD BLOOD WARS',tp:'film',pl:'Generale',st:'finito',pr:'',no:''},
+{t:'ARQ',tp:'film',pl:'Generale',st:'finito',pr:'',no:''},
+{t:'THE GREAT WALL',tp:'film',pl:'Generale',st:'finito',pr:'',no:''},
+{t:'ASSASSIN CREED',tp:'film',pl:'Generale',st:'finito',pr:'',no:''},
+{t:'DOCTOR STRANGE',tp:'film',pl:'Generale',st:'finito',pr:'',no:''},
+{t:'JASON BOURNE',tp:'film',pl:'Generale',st:'finito',pr:'',no:''},
+{t:'ROGUE ONE',tp:'film',pl:'Generale',st:'finito',pr:'',no:''},
+{t:'PASSENGERS',tp:'film',pl:'Generale',st:'finito',pr:'',no:'bello'},
+{t:'STAR TREK 3',tp:'film',pl:'Generale',st:'finito',pr:'',no:''},
+];
+
+// ═══════════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════════
+let items = [];
+let editId = null;
+let fPlat = 'all';
+let fType = 'all';
+let fSearch = '';
+
+const COLS = [
+  {id:'da_vedere',  label:'DA VEDERE',     cls:'c-dv', dot:'#6C63FF'},
+  {id:'in_corso',   label:'IN CORSO',      cls:'c-ic', dot:'#FF9F43'},
+  {id:'sospeso',    label:'SOSPESO',       cls:'c-so', dot:'#636380'},
+  {id:'finito',     label:'FINITO / VISTO',cls:'c-fi', dot:'#00C897'},
+  {id:'non_mi_piace',label:'NON MI PIACE', cls:'c-nm', dot:'#E05555'},
+];
+
+const PC = {
+  'Netflix':'pn','Prime Video':'pp','Disney+':'pd','Veezie':'pv',
+  'Rai Play':'pr','Mediaset':'pm','Dailymotion':'pda','Subita':'ps',
+  'Generale':'pg','Altro':'pa'
+};
+
+function pClass(pl){ return PC[pl]||'pa'; }
+
+// ═══════════════════════════════════════════════════════════
+//  PERSISTENCE
+// ═══════════════════════════════════════════════════════════
+function load(){
+  const s = localStorage.getItem(SKEY);
+  if(s){ items = JSON.parse(s); }
+  else { items = INITIAL.map((x,i)=>({...x,id:i+1})); save(); }
+}
+function save(){ localStorage.setItem(SKEY, JSON.stringify(items)); }
+function nextId(){ return items.length ? Math.max(...items.map(i=>i.id))+1 : 1; }
+
+// ═══════════════════════════════════════════════════════════
+//  RENDER
+// ═══════════════════════════════════════════════════════════
+function filtered(){
+  return items.filter(i=>{
+    if(fPlat!=='all' && i.pl!==fPlat) return false;
+    if(fType!=='all' && i.tp!==fType) return false;
+    if(fSearch){
+      const q=fSearch.toLowerCase();
+      if(!i.t.toLowerCase().includes(q) && !i.pl.toLowerCase().includes(q) && !i.no.toLowerCase().includes(q)) return false;
+    }
+    return true;
+  });
+}
+
+function renderAll(){
+  renderChips();
+  renderBoard();
+  renderStats();
+}
+
+function renderStats(){
+  const ic = items.filter(i=>i.st==='in_corso').length;
+  const fi = items.filter(i=>i.st==='finito').length;
+  document.getElementById('totalBadge').textContent = items.length;
+  document.getElementById('statsBar').innerHTML =
+    `<span>▶ <strong>${ic}</strong> in corso</span>` +
+    `<span>✓ <strong>${fi}</strong> finiti</span>` +
+    `<span>📋 <strong>${items.length}</strong> tot</span>`;
+}
+
+function renderChips(){
+  const plats = ['all',...new Set(items.map(i=>i.pl))].sort((a,b)=>a==='all'?-1:a.localeCompare(b));
+  document.getElementById('platChips').innerHTML = plats.map(p=>
+    `<button class="chip${fPlat===p?' on':''}" onclick="setPl('${p.replace(/'/g,"\\'")}')">
+      ${p==='all'?'Tutte':p}
+    </button>`
+  ).join('');
+}
+
+function renderCard(item){
+  const NEXT = {da_vedere:{ico:'▶',lbl:'Inizia',nst:'in_corso'},in_corso:{ico:'✓',lbl:'Finisci',nst:'finito'},sospeso:{ico:'▶',lbl:'Riprendi',nst:'in_corso'}};
+  const nx = NEXT[item.st];
+  const canSusp = item.st==='in_corso'||item.st==='da_vedere';
+  return `<div class="card" onclick="openEdit(${item.id})">
+    <div class="card-title">${esc(item.t)}</div>
+    <div class="card-meta">
+      <span class="pbadge ${pClass(item.pl)}">${esc(item.pl)}</span>
+      <span class="tbadge">${item.tp==='serie'?'📺':'🎬'}</span>
+    </div>
+    ${item.pr?`<div class="card-prog">📍 ${esc(item.pr)}</div>`:''}
+    ${item.no?`<div class="card-notes">💬 ${esc(item.no)}</div>`:''}
+    <div class="card-actions">
+      ${nx?`<button class="ibt" title="${nx.lbl}" onclick="event.stopPropagation();mv(${item.id},'${nx.nst}')">${nx.ico}</button>`:''}
+      ${canSusp?`<button class="ibt" title="Sospendi" onclick="event.stopPropagation();mv(${item.id},'sospeso')">⏸</button>`:''}
+      ${item.st!=='non_mi_piace'?`<button class="ibt" title="Non mi piace" onclick="event.stopPropagation();mv(${item.id},'non_mi_piace')">✕</button>`:''}
+      <button class="ibt del" title="Elimina" onclick="event.stopPropagation();del(${item.id})">🗑</button>
+    </div>
+  </div>`;
+}
+
+function renderBoard(){
+  const vis = filtered();
+  document.getElementById('board').innerHTML = COLS.map(c=>{
+    const ci = vis.filter(i=>i.st===c.id);
+    const tot = items.filter(i=>i.st===c.id).length;
+    return `<div class="col ${c.cls}">
+      <div class="col-hd">
+        <div class="col-title"><div class="col-dot" style="background:${c.dot}"></div>${c.label}</div>
+        <span class="cnt">${ci.length}${ci.length!==tot?'/'+tot:''}</span>
+      </div>
+      <div class="cards-scroll">
+        ${ci.length===0?`<div class="empty"><div class="empty-ico">◦</div>Nessun titolo</div>`:''}
+        ${ci.map(renderCard).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  ACTIONS
+// ═══════════════════════════════════════════════════════════
+function mv(id, nst){
+  const it=items.find(i=>i.id===id);
+  if(!it) return;
+  it.st=nst; save(); renderAll();
+  toast(`"${it.t.substring(0,28)}" → ${COLS.find(c=>c.id===nst).label}`);
+}
+
+function del(id){
+  const it=items.find(i=>i.id===id);
+  if(it && confirm(`Eliminare "${it.t}"?`)){ items=items.filter(i=>i.id!==id); save(); renderAll(); }
+}
+
+function setPl(p){ fPlat=p; renderAll(); }
+function setType(tp){
+  fType=tp;
+  document.querySelectorAll('.ttbtn').forEach(b=>b.classList.toggle('on',b.dataset.t===tp));
+  renderAll();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  MODAL
+// ═══════════════════════════════════════════════════════════
+function openAdd(){
+  editId=null;
+  document.getElementById('modalTitle').textContent='AGGIUNGI TITOLO';
+  document.getElementById('fTitle').value='';
+  document.getElementById('fType').value='serie';
+  document.getElementById('fPlatform').value='Netflix';
+  document.getElementById('fStatus').value='da_vedere';
+  document.getElementById('fProgress').value='';
+  document.getElementById('fNotes').value='';
+  document.getElementById('delBtn').style.display='none';
+  document.getElementById('modalOv').classList.add('open');
+  setTimeout(()=>document.getElementById('fTitle').focus(),250);
+}
+
+function openEdit(id){
+  const it=items.find(i=>i.id===id);
+  if(!it) return;
+  editId=id;
+  document.getElementById('modalTitle').textContent='MODIFICA TITOLO';
+  document.getElementById('fTitle').value=it.t;
+  document.getElementById('fType').value=it.tp;
+  document.getElementById('fPlatform').value=it.pl;
+  document.getElementById('fStatus').value=it.st;
+  document.getElementById('fProgress').value=it.pr;
+  document.getElementById('fNotes').value=it.no;
+  document.getElementById('delBtn').style.display='flex';
+  document.getElementById('modalOv').classList.add('open');
+}
+
+function closeModal(){ document.getElementById('modalOv').classList.remove('open'); }
+
+function ovClick(e){ if(e.target===document.getElementById('modalOv')) closeModal(); }
+
+function saveItem(){
+  const t=document.getElementById('fTitle').value.trim();
+  if(!t){ alert('Inserisci un titolo'); return; }
+  const d={
+    t, tp:document.getElementById('fType').value,
+    pl:document.getElementById('fPlatform').value,
+    st:document.getElementById('fStatus').value,
+    pr:document.getElementById('fProgress').value.trim(),
+    no:document.getElementById('fNotes').value.trim()
+  };
+  if(editId){
+    const idx=items.findIndex(i=>i.id===editId);
+    items[idx]={...items[idx],...d};
+    toast('Modificato ✓');
+  } else {
+    items.push({id:nextId(),...d});
+    toast('Aggiunto ✓');
+  }
+  save(); closeModal(); renderAll();
+}
+
+function deleteItem(){
+  if(!editId) return;
+  const it=items.find(i=>i.id===editId);
+  if(confirm(`Eliminare "${it.t}"?`)){
+    items=items.filter(i=>i.id!==editId);
+    save(); closeModal(); renderAll();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  SYNC MODAL
+// ═══════════════════════════════════════════════════════════
+const JBKEY_K = 'serietv_jbkey';
+const JBBIN_K = 'serietv_jbbin';
+
+function openSync(){
+  document.getElementById('jbKey').value = localStorage.getItem(JBKEY_K)||'';
+  document.getElementById('jbBin').value = localStorage.getItem(JBBIN_K)||'';
+  setJbStatus('','');
+  document.getElementById('syncOv').classList.add('open');
+}
+function closeSyncModal(){ document.getElementById('syncOv').classList.remove('open'); }
+function syncOvClick(e){ if(e.target===document.getElementById('syncOv')) closeSyncModal(); }
+
+function setJbStatus(msg, type){
+  const el=document.getElementById('jbStatus');
+  el.className='sync-status'+(type?' '+type:'');
+  el.textContent=msg;
+}
+
+async function cloudSave(){
+  const key=document.getElementById('jbKey').value.trim();
+  const bin=document.getElementById('jbBin').value.trim();
+  if(!key){ setJbStatus('⚠️ Inserisci la tua API Key di JSONBin','err'); return; }
+  setJbStatus('⏳ Salvataggio in corso...','loading');
+  try {
+    const payload = JSON.stringify({items, savedAt: new Date().toISOString()});
+    let url='https://api.jsonbin.io/v3/b';
+    let method='POST';
+    const headers={'Content-Type':'application/json','X-Master-Key':key,'X-Bin-Name':'SerieTV'};
+    if(bin){ url+=('/'+bin); method='PUT'; }
+    const r = await fetch(url,{method,headers,body:payload});
+    const d = await r.json();
+    if(!r.ok) throw new Error(d.message||r.status);
+    const newBin = d.metadata?.id || bin;
+    localStorage.setItem(JBKEY_K, key);
+    localStorage.setItem(JBBIN_K, newBin);
+    document.getElementById('jbBin').value = newBin;
+    setJbStatus(`✅ Salvato! Bin ID: ${newBin}\nCopia questo ID e usalo su tutti i tuoi dispositivi.`,'ok');
+    toast('☁️ Dati salvati nel cloud!');
+  } catch(e){
+    setJbStatus('❌ Errore: '+e.message,'err');
+  }
+}
+
+async function cloudLoad(){
+  const key=document.getElementById('jbKey').value.trim();
+  const bin=document.getElementById('jbBin').value.trim();
+  if(!key){ setJbStatus('⚠️ Inserisci la tua API Key','err'); return; }
+  if(!bin){ setJbStatus('⚠️ Inserisci il Bin ID da cui caricare','err'); return; }
+  setJbStatus('⏳ Caricamento dal cloud...','loading');
+  try {
+    const r = await fetch(`https://api.jsonbin.io/v3/b/${bin}/latest`,{
+      headers:{'X-Master-Key':key}
+    });
+    const d = await r.json();
+    if(!r.ok) throw new Error(d.message||r.status);
+    const loaded = d.record;
+    if(!loaded.items || !Array.isArray(loaded.items)) throw new Error('Formato non valido');
+    if(!confirm(`Caricare ${loaded.items.length} titoli dal cloud?\n(I dati locali verranno sostituiti)`)) return;
+    items = loaded.items;
+    save();
+    localStorage.setItem(JBKEY_K, key);
+    localStorage.setItem(JBBIN_K, bin);
+    renderAll();
+    setJbStatus(`✅ Caricati ${items.length} titoli dal cloud (${loaded.savedAt?.slice(0,16).replace('T',' ')||'?'})`, 'ok');
+    toast(`☁️ ${items.length} titoli caricati dal cloud!`);
+  } catch(e){
+    setJbStatus('❌ Errore: '+e.message,'err');
+  }
+}
+
+// ─── EXPORT / IMPORT ───
+function exportJSON(){
+  const payload = JSON.stringify({items, exportedAt: new Date().toISOString()}, null, 2);
+  const blob = new Blob([payload],{type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `serie_tv_backup_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  toast('💾 Backup esportato!');
+}
+
+function importJSON(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const d = JSON.parse(ev.target.result);
+      const loaded = d.items || d; // supporta sia il nuovo formato che array grezzo
+      if(!Array.isArray(loaded)) throw new Error('Formato non riconosciuto');
+      if(!confirm(`Importare ${loaded.length} titoli?\n⚠️ I dati attuali verranno sostituiti.`)) return;
+      items = loaded;
+      save(); renderAll();
+      toast(`✅ ${items.length} titoli importati!`);
+      closeSyncModal();
+    } catch(err){
+      alert('Errore nel file: '+err.message);
+    }
+  };
+  reader.readAsText(file);
+  e.target.value=''; // reset input
+}
+
+// ═══════════════════════════════════════════════════════════
+//  LINKS PANEL
+// ═══════════════════════════════════════════════════════════
+function toggleLinks(){
+  document.getElementById('linksPanel').classList.toggle('open');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  TOAST
+// ═══════════════════════════════════════════════════════════
+let toastTO;
+function toast(msg){
+  const el=document.getElementById('toast');
+  el.textContent=msg;
+  el.classList.add('show');
+  clearTimeout(toastTO);
+  toastTO=setTimeout(()=>el.classList.remove('show'),2200);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  UTILS
+// ═══════════════════════════════════════════════════════════
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ═══════════════════════════════════════════════════════════
+//  KEYBOARD
+// ═══════════════════════════════════════════════════════════
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape') closeModal();
+  if(e.key==='/' && e.target.tagName!=='INPUT' && e.target.tagName!=='TEXTAREA'){
+    e.preventDefault();
+    document.getElementById('searchInput').focus();
+  }
+  if((e.ctrlKey||e.metaKey) && e.key==='Enter'){
+    if(document.getElementById('modalOv').classList.contains('open')) saveItem();
+  }
+});
+
+document.getElementById('searchInput').addEventListener('input',e=>{
+  fSearch=e.target.value.trim(); renderAll();
+});
+
+// ═══════════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════════
+load();
+renderAll();
+</script>
+</body>
+</html>
