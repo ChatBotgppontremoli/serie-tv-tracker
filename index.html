@@ -226,16 +226,7 @@ header {
 .pa { background:#8B5CF6; }
 
 /* Status left border */
-.c-dv .card { border-left-color:var(--da-vedere); }
-.c-ic .card { border-left-color:var(--in-corso); }
-.c-so .card { border-left-color:var(--sospeso); }
-.c-fi .card { border-left-color:var(--finito); }
-.c-nm .card { border-left-color:var(--non-mi-piace); }
-.c-dv .col-title { color:var(--da-vedere); }
-.c-ic .col-title { color:var(--in-corso); }
-.c-so .col-title { color:var(--sospeso); }
-.c-fi .col-title { color:var(--finito); }
-.c-nm .col-title { color:var(--non-mi-piace); }
+/* Status colors now applied inline via JS per-column (supports custom categories) */
 
 /* ── MODAL ── */
 .overlay {
@@ -341,6 +332,41 @@ textarea.fc { resize:vertical; min-height:52px; }
 .sync-btns-row { display:flex; gap:7px; margin-top:8px; }
 #importFileInput { display:none; }
 
+/* ── CATEGORY MANAGER ── */
+.cat-row {
+  display:flex; align-items:center; gap:8px;
+  background:var(--card); border:1px solid var(--border);
+  border-radius:8px; padding:8px 10px; margin-bottom:7px;
+}
+.cat-color {
+  width:30px; height:30px; border-radius:7px; border:1px solid var(--border);
+  cursor:pointer; flex-shrink:0; padding:0; background:none;
+}
+.cat-name-input {
+  flex:1; background:var(--surface); border:1px solid var(--border);
+  border-radius:6px; padding:6px 9px; color:var(--text);
+  font-family:'Nunito',sans-serif; font-size:13px; font-weight:700; outline:none;
+}
+.cat-name-input:focus { border-color:var(--accent); }
+.cat-count { font-size:10px; color:var(--text-muted); white-space:nowrap; flex-shrink:0; min-width:48px; text-align:right; }
+.cat-del-btn {
+  width:30px; height:30px; border-radius:7px; flex-shrink:0;
+  border:1px solid var(--border); background:var(--surface);
+  color:var(--text-muted); cursor:pointer; font-size:13px;
+  display:flex; align-items:center; justify-content:center; transition:all .15s;
+}
+.cat-del-btn:hover { border-color:var(--non-mi-piace); color:var(--non-mi-piace); background:rgba(224,85,85,.1); }
+.cat-add-row {
+  display:flex; align-items:center; gap:8px; margin-top:12px;
+  padding-top:12px; border-top:1px dashed var(--border);
+}
+.cat-add-btn {
+  background:var(--accent); color:#0D0D14; border:none;
+  border-radius:7px; padding:7px 16px; font-weight:800; font-size:13px;
+  cursor:pointer; flex-shrink:0; font-family:'Nunito',sans-serif;
+}
+.cat-add-btn:hover { background:#f0c984; }
+
 /* ── TOAST ── */
 .toast {
   position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(60px);
@@ -362,6 +388,7 @@ textarea.fc { resize:vertical; min-height:52px; }
     <input class="search-input" id="searchInput" placeholder="Cerca... (premi / per focalizzare)">
   </div>
   <div class="header-stats" id="statsBar"></div>
+  <button class="hbtn hbtn-ghost" onclick="openCatManager()">📂 Categorie</button>
   <button class="hbtn hbtn-ghost" id="themeBtn" onclick="toggleTheme()">☀️ Chiaro</button>
   <button class="hbtn hbtn-ghost" onclick="openSync()">☁️ Sync</button>
   <button class="hbtn hbtn-ghost" onclick="toggleLinks()">🔗 Siti</button>
@@ -400,13 +427,7 @@ textarea.fc { resize:vertical; min-height:52px; }
       </div>
       <div class="fg">
         <label class="fl">Stato</label>
-        <select class="fc" id="fStatus">
-          <option value="da_vedere">Da Vedere</option>
-          <option value="in_corso">In Corso</option>
-          <option value="sospeso">Sospeso</option>
-          <option value="finito">Finito / Visto</option>
-          <option value="non_mi_piace">Non Mi Piace</option>
-        </select>
+        <select class="fc" id="fStatus"></select>
       </div>
     </div>
     <div class="fg">
@@ -444,6 +465,25 @@ textarea.fc { resize:vertical; min-height:52px; }
         <button class="btn btn-sec" onclick="closeModal()">Annulla</button>
         <button class="btn btn-ok" onclick="saveItem()">💾 Salva</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- CATEGORY MANAGER MODAL -->
+<div class="overlay" id="catOv" onclick="catOvClick(event)">
+  <div class="sync-modal">
+    <div class="modal-title">📂 GESTISCI CATEGORIE</div>
+    <div class="sync-hint" style="margin-bottom:12px">
+      Rinomina, cambia colore o elimina le colonne. Se elimini una categoria con titoli dentro, dovrai scegliere dove spostarli.
+    </div>
+    <div id="catList"></div>
+    <div class="cat-add-row">
+      <input type="color" class="cat-color" id="newCatColor" value="#6C63FF">
+      <input type="text" class="cat-name-input" id="newCatName" placeholder="Nome nuova categoria...">
+      <button class="cat-add-btn" onclick="addCategory()">＋ Aggiungi</button>
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-top:16px">
+      <button class="btn btn-sec" onclick="closeCatManager()">Chiudi</button>
     </div>
   </div>
 </div>
@@ -1020,13 +1060,20 @@ let fPlat = 'all';
 let fType = 'all';
 let fSearch = '';
 
-const COLS = [
-  {id:'da_vedere',  label:'DA VEDERE',     cls:'c-dv', dot:'#6C63FF'},
-  {id:'in_corso',   label:'IN CORSO',      cls:'c-ic', dot:'#FF9F43'},
-  {id:'sospeso',    label:'SOSPESO',       cls:'c-so', dot:'#636380'},
-  {id:'finito',     label:'FINITO / VISTO',cls:'c-fi', dot:'#00C897'},
-  {id:'non_mi_piace',label:'NON MI PIACE', cls:'c-nm', dot:'#E05555'},
+const COLS_KEY = 'serietv_cols';
+const DEFAULT_COLS = [
+  {id:'da_vedere',  label:'DA VEDERE',     dot:'#6C63FF'},
+  {id:'in_corso',   label:'IN CORSO',      dot:'#FF9F43'},
+  {id:'sospeso',    label:'SOSPESO',       dot:'#636380'},
+  {id:'finito',     label:'FINITO / VISTO',dot:'#00C897'},
+  {id:'non_mi_piace',label:'NON MI PIACE', dot:'#E05555'},
 ];
+let COLS = [];
+function loadCols(){
+  const s = localStorage.getItem(COLS_KEY);
+  COLS = s ? JSON.parse(s) : JSON.parse(JSON.stringify(DEFAULT_COLS));
+}
+function saveCols(){ localStorage.setItem(COLS_KEY, JSON.stringify(COLS)); }
 
 const PC = {
   'Netflix':'pn','Prime Video':'pp','Disney+':'pd','Veezie':'pv',
@@ -1051,13 +1098,18 @@ function nextId(){ return items.length ? Math.max(...items.map(i=>i.id))+1 : 1; 
 //  RENDER
 // ═══════════════════════════════════════════════════════════
 function filtered(){
+  if(fSearch){
+    const q=fSearch.toLowerCase();
+    return items.filter(i=>
+      (i.t||'').toLowerCase().includes(q) ||
+      (i.pl||'').toLowerCase().includes(q) ||
+      (i.no||'').toLowerCase().includes(q) ||
+      (i.pr||'').toLowerCase().includes(q)
+    );
+  }
   return items.filter(i=>{
     if(fPlat!=='all' && i.pl!==fPlat) return false;
     if(fType!=='all' && i.tp!==fType) return false;
-    if(fSearch){
-      const q=fSearch.toLowerCase();
-      if(!i.t.toLowerCase().includes(q) && !i.pl.toLowerCase().includes(q) && !i.no.toLowerCase().includes(q)) return false;
-    }
     return true;
   });
 }
@@ -1091,7 +1143,9 @@ function renderCard(item){
   const NEXT = {da_vedere:{ico:'▶',lbl:'Inizia',nst:'in_corso'},in_corso:{ico:'✓',lbl:'Finisci',nst:'finito'},sospeso:{ico:'▶',lbl:'Riprendi',nst:'in_corso'}};
   const nx = NEXT[item.st];
   const canSusp = item.st==='in_corso'||item.st==='da_vedere';
-  return `<div class="card" onclick="openEdit(${item.id})">
+  const col = COLS.find(c=>c.id===item.st);
+  const dot = col ? col.dot : '#7070A0';
+  return `<div class="card" style="border-left-color:${dot}" onclick="openEdit(${item.id})">
     <div class="card-title">${esc(item.t)}</div>
     <div class="card-meta">
       <span class="pbadge ${pClass(item.pl)}">${esc(item.pl)}</span>
@@ -1113,13 +1167,14 @@ function renderBoard(){
   document.getElementById('board').innerHTML = COLS.map(c=>{
     const ci = vis.filter(i=>i.st===c.id);
     const tot = items.filter(i=>i.st===c.id).length;
-    return `<div class="col ${c.cls}">
+    const showTot = fSearch ? '' : (ci.length!==tot?'/'+tot:'');
+    return `<div class="col">
       <div class="col-hd">
-        <div class="col-title"><div class="col-dot" style="background:${c.dot}"></div>${c.label}</div>
-        <span class="cnt">${ci.length}${ci.length!==tot?'/'+tot:''}</span>
+        <div class="col-title" style="color:${c.dot}"><div class="col-dot" style="background:${c.dot}"></div>${esc(c.label)}</div>
+        <span class="cnt">${ci.length}${showTot}</span>
       </div>
       <div class="cards-scroll">
-        ${ci.length===0?`<div class="empty"><div class="empty-ico">◦</div>Nessun titolo</div>`:''}
+        ${ci.length===0?`<div class="empty"><div class="empty-ico">◦</div>${fSearch?'Nessun risultato':'Nessun titolo'}</div>`:''}
         ${ci.map(renderCard).join('')}
       </div>
     </div>`;
@@ -1151,13 +1206,19 @@ function setType(tp){
 // ═══════════════════════════════════════════════════════════
 //  MODAL
 // ═══════════════════════════════════════════════════════════
+function populateStatusSelect(selected){
+  const sel = document.getElementById('fStatus');
+  sel.innerHTML = COLS.map(c=>`<option value="${c.id}">${esc(c.label)}</option>`).join('');
+  if(selected) sel.value = selected;
+}
+
 function openAdd(){
   editId=null;
   document.getElementById('modalTitle').textContent='AGGIUNGI TITOLO';
   document.getElementById('fTitle').value='';
   document.getElementById('fType').value='serie';
   document.getElementById('fPlatform').value='Netflix';
-  document.getElementById('fStatus').value='da_vedere';
+  populateStatusSelect(COLS[0]?.id);
   document.getElementById('fProgress').value='';
   document.getElementById('fNotes').value='';
   document.getElementById('delBtn').style.display='none';
@@ -1173,7 +1234,7 @@ function openEdit(id){
   document.getElementById('fTitle').value=it.t;
   document.getElementById('fType').value=it.tp;
   document.getElementById('fPlatform').value=it.pl;
-  document.getElementById('fStatus').value=it.st;
+  populateStatusSelect(it.st);
   document.getElementById('fProgress').value=it.pr;
   document.getElementById('fNotes').value=it.no;
   document.getElementById('delBtn').style.display='flex';
@@ -1212,6 +1273,83 @@ function deleteItem(){
     items=items.filter(i=>i.id!==editId);
     save(); closeModal(); renderAll();
   }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  CATEGORY MANAGER (CRUD su colonne/stati)
+// ═══════════════════════════════════════════════════════════
+function openCatManager(){
+  renderCatList();
+  document.getElementById('newCatName').value='';
+  document.getElementById('newCatColor').value='#6C63FF';
+  document.getElementById('catOv').classList.add('open');
+}
+function closeCatManager(){
+  document.getElementById('catOv').classList.remove('open');
+  renderAll(); // refresh board/select in case categories changed
+}
+function catOvClick(e){ if(e.target===document.getElementById('catOv')) closeCatManager(); }
+
+function renderCatList(){
+  document.getElementById('catList').innerHTML = COLS.map(c=>{
+    const count = items.filter(i=>i.st===c.id).length;
+    return `<div class="cat-row">
+      <input type="color" class="cat-color" value="${c.dot}" onchange="recolorCat('${c.id}', this.value)">
+      <input type="text" class="cat-name-input" value="${esc(c.label)}" onchange="renameCat('${c.id}', this.value)">
+      <span class="cat-count">${count} tit.</span>
+      <button class="cat-del-btn" title="Elimina categoria" onclick="deleteCat('${c.id}')">🗑</button>
+    </div>`;
+  }).join('');
+}
+
+function renameCat(id, newLabel){
+  newLabel = newLabel.trim();
+  if(!newLabel) { renderCatList(); return; }
+  const c = COLS.find(c=>c.id===id);
+  if(c){ c.label = newLabel; saveCols(); }
+}
+
+function recolorCat(id, newColor){
+  const c = COLS.find(c=>c.id===id);
+  if(c){ c.dot = newColor; saveCols(); }
+}
+
+function addCategory(){
+  const name = document.getElementById('newCatName').value.trim();
+  const color = document.getElementById('newCatColor').value;
+  if(!name){ alert('Inserisci un nome per la categoria'); return; }
+  const id = 'cat_' + Date.now();
+  COLS.push({id, label:name, dot:color});
+  saveCols();
+  document.getElementById('newCatName').value='';
+  renderCatList();
+  toast(`📂 Categoria "${name}" aggiunta`);
+}
+
+function deleteCat(id){
+  if(COLS.length <= 1){ alert('Deve esistere almeno una categoria.'); return; }
+  const cat = COLS.find(c=>c.id===id);
+  const affected = items.filter(i=>i.st===id);
+  if(affected.length > 0){
+    const others = COLS.filter(c=>c.id!==id);
+    const optionsList = others.map((c,i)=>`${i+1}. ${c.label}`).join('\n');
+    const answer = prompt(
+      `"${cat.label}" contiene ${affected.length} titoli.\nScrivi il NUMERO della categoria dove spostarli:\n\n${optionsList}`
+    );
+    if(answer === null) return; // annullato
+    const idx = parseInt(answer.trim(), 10) - 1;
+    if(isNaN(idx) || idx < 0 || idx >= others.length){
+      alert('Numero non valido. Operazione annullata.');
+      return;
+    }
+    const targetId = others[idx].id;
+    items.forEach(i=>{ if(i.st===id) i.st = targetId; });
+    save();
+  }
+  COLS = COLS.filter(c=>c.id!==id);
+  saveCols();
+  renderCatList();
+  toast(`🗑 Categoria "${cat.label}" eliminata`);
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1382,6 +1520,7 @@ document.getElementById('searchInput').addEventListener('input',e=>{
 //  INIT
 // ═══════════════════════════════════════════════════════════
 load();
+loadCols();
 initTheme();
 renderAll();
 </script>
