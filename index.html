@@ -214,16 +214,7 @@ header {
 .ibt.del:hover { border-color:var(--non-mi-piace); color:var(--non-mi-piace); background:rgba(224,85,85,.12); }
 
 /* Platform colors */
-.pn { background:#E50914; }
-.pp { background:#00A8E0; }
-.pd { background:#113CCF; }
-.pv { background:#7C3AED; }
-.pr { background:#0055A5; }
-.pm { background:#E05500; }
-.pda { background:#0D84FC; }
-.ps { background:#059669; }
-.pg { background:#525270; }
-.pa { background:#8B5CF6; }
+/* Platform colors now applied inline via JS (supports custom platforms) */
 
 /* Status left border */
 /* Status colors now applied inline via JS per-column (supports custom categories) */
@@ -298,6 +289,7 @@ textarea.fc { resize:vertical; min-height:52px; }
 .sync-modal {
   background:var(--surface); border:1px solid var(--border);
   border-radius:14px; padding:22px; width:100%; max-width:520px;
+  max-height:88vh; overflow-y:auto;
   transform:translateY(18px); transition:transform .22s;
   box-shadow:0 24px 64px rgba(0,0,0,.6);
 }
@@ -367,6 +359,32 @@ textarea.fc { resize:vertical; min-height:52px; }
 }
 .cat-add-btn:hover { background:#f0c984; }
 
+/* ── MOBILE RESPONSIVE ── */
+@media (max-width: 760px) {
+  header {
+    flex-wrap: wrap;
+    height: auto;
+    padding: 10px 12px;
+    row-gap: 8px;
+  }
+  .logo { font-size: 21px; order: 1; }
+  .logo sub { display:none; }
+  .search-wrap { order: 3; flex: 1 1 100%; max-width: none; }
+  .header-stats { display: none; }
+  .hbtn { order: 2; padding: 6px 10px; font-size: 12px; }
+  .filters {
+    padding: 8px 12px;
+  }
+  .flabel { display:none; }
+  .board-wrap { padding: 12px 10px; }
+  .board { grid-template-columns: repeat(5, 250px); gap: 10px; }
+}
+@media (max-width: 480px) {
+  .logo { font-size: 19px; }
+  .hbtn { padding: 5px 8px; font-size: 11px; }
+  .board { grid-template-columns: repeat(5, 235px); }
+}
+
 /* ── TOAST ── */
 .toast {
   position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(60px);
@@ -388,7 +406,7 @@ textarea.fc { resize:vertical; min-height:52px; }
     <input class="search-input" id="searchInput" placeholder="Cerca... (premi / per focalizzare)">
   </div>
   <div class="header-stats" id="statsBar"></div>
-  <button class="hbtn hbtn-ghost" onclick="openCatManager()">📂 Categorie</button>
+  <button class="hbtn hbtn-ghost" onclick="openCatManager()">⚙️ Gestisci</button>
   <button class="hbtn hbtn-ghost" id="themeBtn" onclick="toggleTheme()">☀️ Chiaro</button>
   <button class="hbtn hbtn-ghost" onclick="openSync()">☁️ Sync</button>
   <button class="hbtn hbtn-ghost" onclick="toggleLinks()">🔗 Siti</button>
@@ -437,18 +455,7 @@ textarea.fc { resize:vertical; min-height:52px; }
     <div class="frow">
       <div class="fg">
         <label class="fl">Piattaforma</label>
-        <select class="fc" id="fPlatform">
-          <option>Netflix</option>
-          <option>Prime Video</option>
-          <option>Disney+</option>
-          <option>Veezie</option>
-          <option>Rai Play</option>
-          <option>Mediaset</option>
-          <option>Dailymotion</option>
-          <option>Subita</option>
-          <option>Generale</option>
-          <option>Altro</option>
-        </select>
+        <select class="fc" id="fPlatform"></select>
       </div>
       <div class="fg">
         <label class="fl">Progressione</label>
@@ -472,7 +479,7 @@ textarea.fc { resize:vertical; min-height:52px; }
 <!-- CATEGORY MANAGER MODAL -->
 <div class="overlay" id="catOv" onclick="catOvClick(event)">
   <div class="sync-modal">
-    <div class="modal-title">📂 GESTISCI CATEGORIE</div>
+    <div class="modal-title">📂 GESTISCI CATEGORIE E PIATTAFORME</div>
     <div class="sync-hint" style="margin-bottom:12px">
       Rinomina, cambia colore o elimina le colonne. Se elimini una categoria con titoli dentro, dovrai scegliere dove spostarli.
     </div>
@@ -482,6 +489,15 @@ textarea.fc { resize:vertical; min-height:52px; }
       <input type="text" class="cat-name-input" id="newCatName" placeholder="Nome nuova categoria...">
       <button class="cat-add-btn" onclick="addCategory()">＋ Aggiungi</button>
     </div>
+
+    <div class="modal-title" style="font-size:16px;margin-top:22px;margin-bottom:10px">🎬 PIATTAFORME</div>
+    <div id="platList"></div>
+    <div class="cat-add-row">
+      <input type="color" class="cat-color" id="newPlatColor" value="#8B5CF6">
+      <input type="text" class="cat-name-input" id="newPlatName" placeholder="Nome nuova piattaforma...">
+      <button class="cat-add-btn" onclick="addPlatform()">＋ Aggiungi</button>
+    </div>
+
     <div style="display:flex;justify-content:flex-end;margin-top:16px">
       <button class="btn btn-sec" onclick="closeCatManager()">Chiudi</button>
     </div>
@@ -1075,13 +1091,29 @@ function loadCols(){
 }
 function saveCols(){ localStorage.setItem(COLS_KEY, JSON.stringify(COLS)); }
 
-const PC = {
-  'Netflix':'pn','Prime Video':'pp','Disney+':'pd','Veezie':'pv',
-  'Rai Play':'pr','Mediaset':'pm','Dailymotion':'pda','Subita':'ps',
-  'Generale':'pg','Altro':'pa'
-};
-
-function pClass(pl){ return PC[pl]||'pa'; }
+const PLAT_KEY = 'serietv_platforms';
+const DEFAULT_PLATFORMS = [
+  {name:'Netflix',color:'#E50914'},
+  {name:'Prime Video',color:'#00A8E0'},
+  {name:'Disney+',color:'#113CCF'},
+  {name:'Veezie',color:'#7C3AED'},
+  {name:'Rai Play',color:'#0055A5'},
+  {name:'Mediaset',color:'#E05500'},
+  {name:'Dailymotion',color:'#0D84FC'},
+  {name:'Subita',color:'#059669'},
+  {name:'Generale',color:'#525270'},
+  {name:'Altro',color:'#8B5CF6'},
+];
+let PLATFORMS = [];
+function loadPlatforms(){
+  const s = localStorage.getItem(PLAT_KEY);
+  PLATFORMS = s ? JSON.parse(s) : JSON.parse(JSON.stringify(DEFAULT_PLATFORMS));
+}
+function savePlatforms(){ localStorage.setItem(PLAT_KEY, JSON.stringify(PLATFORMS)); }
+function platColor(name){
+  const p = PLATFORMS.find(p=>p.name===name);
+  return p ? p.color : '#8B5CF6';
+}
 
 // ═══════════════════════════════════════════════════════════
 //  PERSISTENCE
@@ -1148,7 +1180,7 @@ function renderCard(item){
   return `<div class="card" style="border-left-color:${dot}" onclick="openEdit(${item.id})">
     <div class="card-title">${esc(item.t)}</div>
     <div class="card-meta">
-      <span class="pbadge ${pClass(item.pl)}">${esc(item.pl)}</span>
+      <span class="pbadge" style="background:${platColor(item.pl)}">${esc(item.pl)}</span>
       <span class="tbadge">${item.tp==='serie'?'📺':'🎬'}</span>
     </div>
     ${item.pr?`<div class="card-prog">📍 ${esc(item.pr)}</div>`:''}
@@ -1212,12 +1244,18 @@ function populateStatusSelect(selected){
   if(selected) sel.value = selected;
 }
 
+function populatePlatformSelect(selected){
+  const sel = document.getElementById('fPlatform');
+  sel.innerHTML = PLATFORMS.map(p=>`<option value="${esc(p.name)}">${esc(p.name)}</option>`).join('');
+  if(selected) sel.value = selected;
+}
+
 function openAdd(){
   editId=null;
   document.getElementById('modalTitle').textContent='AGGIUNGI TITOLO';
   document.getElementById('fTitle').value='';
   document.getElementById('fType').value='serie';
-  document.getElementById('fPlatform').value='Netflix';
+  populatePlatformSelect(PLATFORMS[0]?.name);
   populateStatusSelect(COLS[0]?.id);
   document.getElementById('fProgress').value='';
   document.getElementById('fNotes').value='';
@@ -1233,7 +1271,7 @@ function openEdit(id){
   document.getElementById('modalTitle').textContent='MODIFICA TITOLO';
   document.getElementById('fTitle').value=it.t;
   document.getElementById('fType').value=it.tp;
-  document.getElementById('fPlatform').value=it.pl;
+  populatePlatformSelect(it.pl);
   populateStatusSelect(it.st);
   document.getElementById('fProgress').value=it.pr;
   document.getElementById('fNotes').value=it.no;
@@ -1280,8 +1318,11 @@ function deleteItem(){
 // ═══════════════════════════════════════════════════════════
 function openCatManager(){
   renderCatList();
+  renderPlatList();
   document.getElementById('newCatName').value='';
   document.getElementById('newCatColor').value='#6C63FF';
+  document.getElementById('newPlatName').value='';
+  document.getElementById('newPlatColor').value='#8B5CF6';
   document.getElementById('catOv').classList.add('open');
 }
 function closeCatManager(){
@@ -1350,6 +1391,74 @@ function deleteCat(id){
   saveCols();
   renderCatList();
   toast(`🗑 Categoria "${cat.label}" eliminata`);
+}
+
+// ─── PIATTAFORME ───
+function renderPlatList(){
+  document.getElementById('platList').innerHTML = PLATFORMS.map(p=>{
+    const count = items.filter(i=>i.pl===p.name).length;
+    const safe = esc(p.name).replace(/'/g,"\\'");
+    return `<div class="cat-row">
+      <input type="color" class="cat-color" value="${p.color}" onchange="recolorPlat('${safe}', this.value)">
+      <input type="text" class="cat-name-input" value="${esc(p.name)}" onchange="renamePlat('${safe}', this.value)">
+      <span class="cat-count">${count} tit.</span>
+      <button class="cat-del-btn" title="Elimina piattaforma" onclick="deletePlat('${safe}')">🗑</button>
+    </div>`;
+  }).join('');
+}
+
+function renamePlat(oldName, newName){
+  newName = newName.trim();
+  if(!newName){ renderPlatList(); return; }
+  const p = PLATFORMS.find(p=>p.name===oldName);
+  if(!p) return;
+  p.name = newName;
+  items.forEach(i=>{ if(i.pl===oldName) i.pl = newName; });
+  savePlatforms(); save();
+  renderPlatList();
+  toast(`Piattaforma rinominata in "${newName}"`);
+}
+
+function recolorPlat(name, newColor){
+  const p = PLATFORMS.find(p=>p.name===name);
+  if(p){ p.color = newColor; savePlatforms(); }
+}
+
+function addPlatform(){
+  const name = document.getElementById('newPlatName').value.trim();
+  const color = document.getElementById('newPlatColor').value;
+  if(!name){ alert('Inserisci un nome per la piattaforma'); return; }
+  if(PLATFORMS.some(p=>p.name===name)){ alert('Esiste già una piattaforma con questo nome'); return; }
+  PLATFORMS.push({name, color});
+  savePlatforms();
+  document.getElementById('newPlatName').value='';
+  renderPlatList();
+  toast(`🎬 Piattaforma "${name}" aggiunta`);
+}
+
+function deletePlat(name){
+  if(PLATFORMS.length <= 1){ alert('Deve esistere almeno una piattaforma.'); return; }
+  const affected = items.filter(i=>i.pl===name);
+  if(affected.length > 0){
+    const others = PLATFORMS.filter(p=>p.name!==name);
+    const optionsList = others.map((p,i)=>`${i+1}. ${p.name}`).join('\n');
+    const answer = prompt(
+      `"${name}" contiene ${affected.length} titoli.\nScrivi il NUMERO della piattaforma dove spostarli:\n\n${optionsList}`
+    );
+    if(answer === null) return;
+    const idx = parseInt(answer.trim(), 10) - 1;
+    if(isNaN(idx) || idx < 0 || idx >= others.length){
+      alert('Numero non valido. Operazione annullata.');
+      return;
+    }
+    const targetName = others[idx].name;
+    items.forEach(i=>{ if(i.pl===name) i.pl = targetName; });
+    save();
+  }
+  PLATFORMS = PLATFORMS.filter(p=>p.name!==name);
+  savePlatforms();
+  renderPlatList();
+  toast(`🗑 Piattaforma "${name}" eliminata`);
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1521,6 +1630,7 @@ document.getElementById('searchInput').addEventListener('input',e=>{
 // ═══════════════════════════════════════════════════════════
 load();
 loadCols();
+loadPlatforms();
 initTheme();
 renderAll();
 </script>
