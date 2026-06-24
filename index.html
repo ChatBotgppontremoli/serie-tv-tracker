@@ -1239,12 +1239,22 @@ function setType(tp){
 //  MODAL
 // ═══════════════════════════════════════════════════════════
 function populateStatusSelect(selected){
+  // auto-heal: se lo stato dell'item non esiste più nella lista categorie, lo ricrea al volo
+  if(selected && !COLS.some(c=>c.id===selected)){
+    COLS.push({id:selected, label:selected, dot:'#7070A0'});
+    saveCols();
+  }
   const sel = document.getElementById('fStatus');
-  sel.innerHTML = COLS.map(c=>`<option value="${c.id}">${esc(c.label)}</option>`).join('');
+  sel.innerHTML = COLS.map(c=>`<option value="${esc(c.id)}">${esc(c.label)}</option>`).join('');
   if(selected) sel.value = selected;
 }
 
 function populatePlatformSelect(selected){
+  // auto-heal: se la piattaforma dell'item non esiste più nella lista, la ricrea al volo
+  if(selected && !PLATFORMS.some(p=>p.name===selected)){
+    PLATFORMS.push({name:selected, color:'#8B5CF6'});
+    savePlatforms();
+  }
   const sel = document.getElementById('fPlatform');
   sel.innerHTML = PLATFORMS.map(p=>`<option value="${esc(p.name)}">${esc(p.name)}</option>`).join('');
   if(selected) sel.value = selected;
@@ -1504,7 +1514,7 @@ async function cloudSave(){
   if(!key){ setJbStatus('⚠️ Inserisci la tua API Key di JSONBin','err'); return; }
   setJbStatus('⏳ Salvataggio in corso...','loading');
   try {
-    const payload = JSON.stringify({items, savedAt: new Date().toISOString()});
+    const payload = JSON.stringify({items, cols:COLS, platforms:PLATFORMS, savedAt: new Date().toISOString()});
     let url='https://api.jsonbin.io/v3/b';
     let method='POST';
     const headers={'Content-Type':'application/json','X-Master-Key':key,'X-Bin-Name':'SerieTV'};
@@ -1539,6 +1549,8 @@ async function cloudLoad(){
     if(!loaded.items || !Array.isArray(loaded.items)) throw new Error('Formato non valido');
     if(!confirm(`Caricare ${loaded.items.length} titoli dal cloud?\n(I dati locali verranno sostituiti)`)) return;
     items = loaded.items;
+    if(Array.isArray(loaded.cols) && loaded.cols.length){ COLS = loaded.cols; saveCols(); }
+    if(Array.isArray(loaded.platforms) && loaded.platforms.length){ PLATFORMS = loaded.platforms; savePlatforms(); }
     save();
     localStorage.setItem(JBKEY_K, key);
     localStorage.setItem(JBBIN_K, bin);
@@ -1552,7 +1564,7 @@ async function cloudLoad(){
 
 // ─── EXPORT / IMPORT ───
 function exportJSON(){
-  const payload = JSON.stringify({items, exportedAt: new Date().toISOString()}, null, 2);
+  const payload = JSON.stringify({items, cols:COLS, platforms:PLATFORMS, exportedAt: new Date().toISOString()}, null, 2);
   const blob = new Blob([payload],{type:'application/json'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -1572,6 +1584,8 @@ function importJSON(e){
       if(!Array.isArray(loaded)) throw new Error('Formato non riconosciuto');
       if(!confirm(`Importare ${loaded.length} titoli?\n⚠️ I dati attuali verranno sostituiti.`)) return;
       items = loaded;
+      if(Array.isArray(d.cols) && d.cols.length){ COLS = d.cols; saveCols(); }
+      if(Array.isArray(d.platforms) && d.platforms.length){ PLATFORMS = d.platforms; savePlatforms(); }
       save(); renderAll();
       toast(`✅ ${items.length} titoli importati!`);
       closeSyncModal();
